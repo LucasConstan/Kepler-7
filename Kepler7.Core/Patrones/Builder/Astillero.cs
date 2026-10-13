@@ -1,4 +1,4 @@
-﻿namespace Kepler_7.Patrones.Builder
+﻿namespace Kepler7.Core.Patrones.Builder
 {
     /// <summary>
     /// BUILDER — Director. Conoce el orden de ensamblaje, pero no los detalles de cada receta:

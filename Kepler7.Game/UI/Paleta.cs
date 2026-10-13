@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 
-namespace Kepler_7.UI
+namespace Kepler7.Game.UI
 {
     /// <summary>Colores de la interfaz (tema oscuro "espacial").</summary>
     public static class Paleta

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Kepler_7.Patrones.Prototype
+namespace Kepler7.Core.Patrones.Prototype
 {
     /// <summary>
     /// Pieza de equipamiento de un tripulante. También es un prototipo: cada tripulante

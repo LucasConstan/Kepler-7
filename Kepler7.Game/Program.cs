@@ -1,4 +1,4 @@
-namespace Kepler_7
+﻿namespace Kepler7.Game
 {
     internal static class Program
     {

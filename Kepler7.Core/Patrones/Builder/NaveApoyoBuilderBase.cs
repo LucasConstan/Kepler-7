@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 
-namespace Kepler_7.Patrones.Builder
+namespace Kepler7.Core.Patrones.Builder
 {
     /// <summary>
     /// Base común de los builders concretos: maneja la nave en construcción

@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 
-namespace Kepler_7.Patrones.Builder
+namespace Kepler7.Core.Patrones.Builder
 {
     /// <summary>BUILDER concreto — Exploradora: rápida, poco blindaje y poco daño por disparo.</summary>
     public class NaveExploradoraBuilder : NaveApoyoBuilderBase

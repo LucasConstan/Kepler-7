@@ -1,4 +1,4 @@
-﻿namespace Kepler_7.Patrones.Builder
+﻿namespace Kepler7.Core.Patrones.Builder
 {
     /// <summary>
     /// BUILDER — Interfaz del constructor. Define los pasos para ensamblar una nave de apoyo;

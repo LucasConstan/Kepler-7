@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Kepler_7.Patrones.Prototype
+namespace Kepler7.Core.Patrones.Prototype
 {
     /// <summary>
     /// PROTOTYPE — Registro de prototipos. El laboratorio guarda un tripulante base por rol

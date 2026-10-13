@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using Kepler_7.Modelo;
+using Kepler7.Core.Modelo;
+using Kepler7.Core.Patrones.TemplateMethod;
 
-namespace Kepler_7.Patrones.Prototype
+namespace Kepler7.Core.Patrones.Prototype
 {
     /// <summary>
     /// PROTOTYPE — Prototipo abstracto. Un tripulante sabe clonarse a sí mismo:
@@ -69,6 +70,8 @@ namespace Kepler_7.Patrones.Prototype
 
     public class Soldado : Tripulante
     {
+        public override TurnoUnidad Turno { get; } = new TurnoSoldado();
+
         public Soldado() : base("Soldado", "So", Color.FromArgb(70, 130, 220), 12, 100, 50)
         {
             Equipar(new Equipo("Rifle estándar", 3, 0, 0));
@@ -77,6 +80,8 @@ namespace Kepler_7.Patrones.Prototype
 
     public class Medico : Tripulante
     {
+        public override TurnoUnidad Turno { get; } = new TurnoMedico();
+
         public Medico() : base("Médico", "Me", Color.FromArgb(60, 180, 110), 4, 80, 60)
         {
             Equipar(new Equipo("Kit médico", 0, 10, 0));
@@ -85,6 +90,8 @@ namespace Kepler_7.Patrones.Prototype
 
     public class Francotirador : Tripulante
     {
+        public override TurnoUnidad Turno { get; } = new TurnoFrancotirador();
+
         public Francotirador() : base("Francotirador", "Fr", Color.FromArgb(150, 100, 220), 25, 60, 75)
         {
             Equipar(new Equipo("Mira térmica", 5, 0, 0));
@@ -93,6 +100,8 @@ namespace Kepler_7.Patrones.Prototype
 
     public class Comandante : Tripulante
     {
+        public override TurnoUnidad Turno { get; } = new TurnoComandante();
+
         public Comandante() : base("Comandante", "Co", Color.FromArgb(220, 180, 60), 10, 140, 90)
         {
             Equipar(new Equipo("Comunicador táctico", 2, 0, 0));

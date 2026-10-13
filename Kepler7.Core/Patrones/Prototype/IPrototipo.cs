@@ -1,4 +1,4 @@
-﻿namespace Kepler_7.Patrones.Prototype
+﻿namespace Kepler7.Core.Patrones.Prototype
 {
     /// <summary>
     /// PROTOTYPE — Interfaz del prototipo. Tipada (a diferencia de System.ICloneable, que devuelve object).

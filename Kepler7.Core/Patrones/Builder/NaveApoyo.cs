@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
-using Kepler_7.Modelo;
+using Kepler7.Core.Modelo;
+using Kepler7.Core.Patrones.TemplateMethod;
 
-namespace Kepler_7.Patrones.Builder
+namespace Kepler7.Core.Patrones.Builder
 {
     /// <summary>
     /// BUILDER — Producto. Una nave de apoyo es un defensor especial que se arma por partes.
@@ -22,6 +23,7 @@ namespace Kepler_7.Patrones.Builder
 
         public override int Danio => PotenciaDeFuego * DisparosPorTick;
         public override int VidaMaxima => Blindaje;
+        public override TurnoUnidad Turno { get; } = new TurnoNaveApoyo();
 
         internal void Identificar(string nombre, string simbolo, Color color, int costo)
         {
