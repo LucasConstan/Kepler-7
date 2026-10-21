@@ -2,7 +2,7 @@
 
 namespace Kepler7.Core.Patrones.Builder
 {
-    /// <summary>BUILDER concreto — Exploradora: rápida, poco blindaje y poco daño por disparo.</summary>
+    /// <summary>BUILDER concreto - Exploradora: rápida, poco blindaje y poco daño por disparo.</summary>
     public class NaveExploradoraBuilder : NaveApoyoBuilderBase
     {
         public override string NombreReceta => "Exploradora";
@@ -35,7 +35,7 @@ namespace Kepler7.Core.Patrones.Builder
         }
     }
 
-    /// <summary>BUILDER concreto — Combate: tanque, mucho blindaje y daño fuerte pero lento.</summary>
+    /// <summary>BUILDER concreto - Combate: tanque, mucho blindaje y daño fuerte pero lento.</summary>
     public class NaveCombateBuilder : NaveApoyoBuilderBase
     {
         public override string NombreReceta => "Combate";
@@ -69,7 +69,7 @@ namespace Kepler7.Core.Patrones.Builder
         }
     }
 
-    /// <summary>BUILDER concreto — Carga: defensa modesta, pero genera recursos extra en cada oleada.</summary>
+    /// <summary>BUILDER concreto - Carga: defensa modesta, pero genera recursos extra en cada oleada.</summary>
     public class NaveCargaBuilder : NaveApoyoBuilderBase
     {
         public override string NombreReceta => "Carga";

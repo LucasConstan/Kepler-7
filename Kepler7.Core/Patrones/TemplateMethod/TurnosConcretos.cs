@@ -3,7 +3,7 @@ using Kepler7.Core.Patrones.Builder;
 
 namespace Kepler7.Core.Patrones.TemplateMethod
 {
-    /// <summary>TEMPLATE METHOD concreto — Soldado: dispara al enemigo más cercano.</summary>
+    /// <summary>TEMPLATE METHOD concreto - Soldado: dispara al enemigo más cercano.</summary>
     public class TurnoSoldado : TurnoUnidad
     {
         private const int Alcance = 4;
@@ -16,7 +16,7 @@ namespace Kepler7.Core.Patrones.TemplateMethod
         }
     }
 
-    /// <summary>TEMPLATE METHOD concreto — Francotirador: ve todo el carril y apunta al enemigo con más vida.</summary>
+    /// <summary>TEMPLATE METHOD concreto - Francotirador: ve todo el carril y apunta al enemigo con más vida.</summary>
     public class TurnoFrancotirador : TurnoUnidad
     {
         protected override Accion Decidir(Unidad unidad, Contexto contexto)
@@ -33,7 +33,7 @@ namespace Kepler7.Core.Patrones.TemplateMethod
         }
     }
 
-    /// <summary>TEMPLATE METHOD concreto — Médico: cura al aliado más herido de la zona; si no hay, dispara.</summary>
+    /// <summary>TEMPLATE METHOD concreto - Médico: cura al aliado más herido de la zona; si no hay, dispara.</summary>
     public class TurnoMedico : TurnoUnidad
     {
         private const int Curacion = 20;
@@ -68,7 +68,7 @@ namespace Kepler7.Core.Patrones.TemplateMethod
         }
     }
 
-    /// <summary>TEMPLATE METHOD concreto — Comandante: coordina al carril (+daño a todos) y juega primero.</summary>
+    /// <summary>TEMPLATE METHOD concreto - Comandante: coordina al carril (+daño a todos) y juega primero.</summary>
     public class TurnoComandante : TurnoUnidad
     {
         private const int BonusCoordinacion = 5;
@@ -110,7 +110,7 @@ namespace Kepler7.Core.Patrones.TemplateMethod
         }
     }
 
-    /// <summary>TEMPLATE METHOD concreto — Nave de apoyo: dispara varias veces por tick (según cómo la armó el Builder).</summary>
+    /// <summary>TEMPLATE METHOD concreto - Nave de apoyo: dispara varias veces por tick (según cómo la armó el Builder).</summary>
     public class TurnoNaveApoyo : TurnoUnidad
     {
         private const int Alcance = 5;
@@ -147,7 +147,7 @@ namespace Kepler7.Core.Patrones.TemplateMethod
     }
 
     /// <summary>
-    /// TEMPLATE METHOD concreto — Enemigo: el paso "Decidir" se lo pregunta a su estrategia de IA
+    /// TEMPLATE METHOD concreto - Enemigo: el paso "Decidir" se lo pregunta a su estrategia de IA
     /// (acá se juntan Template Method y Strategy).
     /// </summary>
     public class TurnoEnemigo : TurnoUnidad

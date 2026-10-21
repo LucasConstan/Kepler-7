@@ -3,7 +3,7 @@
 namespace Kepler7.Core.Patrones.Prototype
 {
     /// <summary>
-    /// PROTOTYPE — Registro de prototipos. El laboratorio guarda un tripulante base por rol
+    /// PROTOTYPE - Registro de prototipos. El laboratorio guarda un tripulante base por rol
     /// y genera defensores nuevos clonándolos, sin hacer "new Soldado()" cada vez.
     /// </summary>
     public class LaboratorioClonacion

@@ -31,7 +31,7 @@
             this.components = new System.ComponentModel.Container();
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1360, 900);
-            this.Text = "Estación Orbital — Defensa de Subsistemas";
+            this.Text = "Estación Orbital - Defensa de Subsistemas";
         }
 
         #endregion

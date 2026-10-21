@@ -28,7 +28,7 @@ namespace Kepler7.Core.Patrones.Prototype
             var bonus = new List<string>();
             if (BonusDanio > 0) bonus.Add($"+{BonusDanio} daño");
             if (BonusVida > 0) bonus.Add($"+{BonusVida} vida");
-            return $"{Nombre} ({string.Join(", ", bonus)}) — {Costo} cr";
+            return $"{Nombre} ({string.Join(", ", bonus)}) - {Costo} cr";
         }
 
         /// <summary>Equipamiento que se puede comprar para los tripulantes de la reserva.</summary>

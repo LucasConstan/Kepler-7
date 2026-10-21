@@ -1,7 +1,7 @@
 ﻿namespace Kepler7.Core.Patrones.Builder
 {
     /// <summary>
-    /// BUILDER — Director. Conoce el orden de ensamblaje, pero no los detalles de cada receta:
+    /// BUILDER - Director. Conoce el orden de ensamblaje, pero no los detalles de cada receta:
     /// el mismo proceso produce naves distintas según el builder que recibe.
     /// </summary>
     public class Astillero

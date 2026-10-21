@@ -7,7 +7,7 @@ using Kepler7.Core.Patrones.TemplateMethod;
 namespace Kepler7.Core.Patrones.Prototype
 {
     /// <summary>
-    /// PROTOTYPE — Prototipo abstracto. Un tripulante sabe clonarse a sí mismo:
+    /// PROTOTYPE - Prototipo abstracto. Un tripulante sabe clonarse a sí mismo:
     /// copia superficial con MemberwiseClone + copia profunda de la lista de equipamiento.
     /// </summary>
     public abstract class Tripulante : Unidad, IPrototipo<Tripulante>

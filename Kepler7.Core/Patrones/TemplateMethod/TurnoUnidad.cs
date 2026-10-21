@@ -3,7 +3,7 @@ using Kepler7.Core.Modelo;
 namespace Kepler7.Core.Patrones.TemplateMethod
 {
     /// <summary>
-    /// TEMPLATE METHOD — Clase abstracta. EjecutarTurno() define el orden fijo del turno
+    /// TEMPLATE METHOD - Clase abstracta. EjecutarTurno() define el orden fijo del turno
     /// (inicio, decisión, acción, fin) y NO se puede redefinir. Las subclases solo cambian
     /// los pasos variables: cada rol decide y actúa a su manera.
     /// </summary>

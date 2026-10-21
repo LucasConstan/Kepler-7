@@ -6,7 +6,7 @@ using Kepler7.Core.Patrones.TemplateMethod;
 namespace Kepler7.Core.Patrones.Builder
 {
     /// <summary>
-    /// BUILDER — Producto. Una nave de apoyo es un defensor especial que se arma por partes.
+    /// BUILDER - Producto. Una nave de apoyo es un defensor especial que se arma por partes.
     /// Sus setters son internos: solo un builder puede configurarla.
     /// </summary>
     public class NaveApoyo : Unidad

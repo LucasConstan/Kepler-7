@@ -4,6 +4,7 @@ using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using Kepler7.Core.Modelo;
 using Kepler7.Core.Patrones.Builder;
+using Kepler7.Core.Patrones.Flyweight;
 
 namespace Kepler7.Game.UI
 {
@@ -25,7 +26,7 @@ namespace Kepler7.Game.UI
     public class TableroControl : Control
     {
         private const int AnchoEncabezado = 150;
-        private const int AltoEncabezado = 30;
+        private const int AltoEncabezado = 44;
         private const int Margen = 10;
 
         private Partida _partida = new Partida(0);
@@ -130,8 +131,35 @@ namespace Kepler7.Game.UI
                 var areaDef = new Rectangle(primera.Left, Margen, ultimaDefensa.Right - primera.Left, AltoEncabezado);
                 var areaEnem = new Rectangle(ultimaDefensa.Right, Margen, ultima.Right - ultimaDefensa.Right, AltoEncabezado);
                 var formato = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-                g.DrawString("◄ NÚCLEO   ·   ZONA DE DEFENSA", fuente, pincelDef, areaDef, formato);
+                g.DrawString("ZONA DE DEFENSA", fuente, pincelDef, areaDef, formato);
                 g.DrawString("APROXIMACIÓN ENEMIGA ◄", fuente, pincelEnem, areaEnem, formato);
+
+                // Arriba de los núcleos: el título y el total de tripulantes de la estación (Flyweight).
+                var tripulacion = _partida.Tripulacion;
+                var areaNucleo = new Rectangle(Margen, Margen, AnchoEncabezado - 8, 18);
+                g.DrawString("◄ NÚCLEO", fuente, pincelDef, areaNucleo, formato);
+                using (var fuenteChica = new Font("Segoe UI", 7.5f))
+                using (var pincelSuave = new SolidBrush(Paleta.TextoSuave))
+                {
+                    // Se dibuja desde un punto (sin recuadro) para que el texto no se corte si es largo.
+                    g.DrawString($"Tripulantes totales {tripulacion.TotalVivos:N0}/{tripulacion.TotalGenerados:N0}",
+                                 fuenteChica, pincelSuave, Margen + 4, Margen + 19);
+                }
+                float porcentaje = (float)tripulacion.TotalVivos / tripulacion.TotalGenerados;
+                DibujarBarra(g, new Rectangle(Margen + 10, Margen + 36, AnchoEncabezado - 28, 5), porcentaje, ColorTripulantes);
+            }
+        }
+
+        private static readonly Color ColorTripulantes = Color.FromArgb(80, 170, 255);
+
+        private static void DibujarBarra(Graphics g, Rectangle barra, float porcentaje, Color color)
+        {
+            porcentaje = Math.Min(1f, porcentaje);
+            using (var fondo = new SolidBrush(Color.FromArgb(60, 255, 255, 255)))
+            using (var relleno = new SolidBrush(color))
+            {
+                g.FillRectangle(fondo, barra);
+                g.FillRectangle(relleno, barra.Left, barra.Top, (int)(barra.Width * porcentaje), barra.Height);
             }
         }
 
@@ -156,12 +184,17 @@ namespace Kepler7.Game.UI
             using (var pincelSuave = new SolidBrush(caido ? Color.FromArgb(240, 120, 130) : Paleta.TextoSuave))
             {
                 int mitad = area.Top + area.Height / 2;
-                g.DrawString(Estacion.Subsistemas[carril], fuente, pincel, area.Left + 10, mitad - 24);
-                g.DrawString(caido ? "¡CAÍDO!" : $"Núcleo {integridad}/{Partida.IntegridadMaxima}",
-                             fuenteChica, pincelSuave, area.Left + 10, mitad - 2);
+                int tripulantes = _partida.Tripulacion.TripulantesEn(carril);
+                g.DrawString(Estacion.Subsistemas[carril], fuente, pincel, area.Left + 10, mitad - 30);
+                g.DrawString(caido ? "¡CAÍDO!" : $"Núcleo {integridad}  ·  Trip. {tripulantes:N0}",
+                             fuenteChica, pincelSuave, area.Left + 10, mitad - 10);
+
+                // Barra de tripulantes del subsistema (el escudo del núcleo).
+                float porcTripulantes = (float)tripulantes / BibliotecaTripulantes.InicialesPorCarril;
+                DibujarBarra(g, new Rectangle(area.Left + 10, mitad + 8, area.Width - 20, 5), porcTripulantes, ColorTripulantes);
 
                 // Barra de integridad del núcleo del carril.
-                var barra = new Rectangle(area.Left + 10, mitad + 16, area.Width - 20, 6);
+                var barra = new Rectangle(area.Left + 10, mitad + 17, area.Width - 20, 6);
                 float porcentaje = (float)integridad / Partida.IntegridadMaxima;
                 Color colorBarra = porcentaje > 0.5f ? Color.FromArgb(90, 220, 120)
                                  : porcentaje > 0.25f ? Color.FromArgb(230, 190, 60)

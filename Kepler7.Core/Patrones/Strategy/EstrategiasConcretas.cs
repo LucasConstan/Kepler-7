@@ -3,7 +3,7 @@ using Kepler7.Core.Modelo;
 
 namespace Kepler7.Core.Patrones.Strategy
 {
-    /// <summary>STRATEGY concreta — Agresiva: va directo al núcleo y solo se frena si le tapan el paso.</summary>
+    /// <summary>STRATEGY concreta - Agresiva: va directo al núcleo y solo se frena si le tapan el paso.</summary>
     public class IAAgresiva : IEstrategiaIA
     {
         public string Nombre => "Agresiva";
@@ -23,7 +23,7 @@ namespace Kepler7.Core.Patrones.Strategy
         }
     }
 
-    /// <summary>STRATEGY concreta — Defensiva: se detiene a pelear apenas tiene un objetivo y avanza con cautela.</summary>
+    /// <summary>STRATEGY concreta - Defensiva: se detiene a pelear apenas tiene un objetivo y avanza con cautela.</summary>
     public class IADefensiva : IEstrategiaIA
     {
         public string Nombre => "Defensiva";
@@ -43,7 +43,7 @@ namespace Kepler7.Core.Patrones.Strategy
         }
     }
 
-    /// <summary>STRATEGY concreta — Aleatoria: elige al azar entre lo que puede hacer.</summary>
+    /// <summary>STRATEGY concreta - Aleatoria: elige al azar entre lo que puede hacer.</summary>
     public class IAAleatoria : IEstrategiaIA
     {
         public string Nombre => "Aleatoria";
@@ -70,7 +70,7 @@ namespace Kepler7.Core.Patrones.Strategy
         }
     }
 
-    /// <summary>STRATEGY concreta — Calculadora: busca el carril menos defendido y ataca al defensor más débil.</summary>
+    /// <summary>STRATEGY concreta - Calculadora: busca el carril menos defendido y ataca al defensor más débil.</summary>
     public class IACalculadora : IEstrategiaIA
     {
         public string Nombre => "Calculadora";

@@ -1,10 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using Kepler7.Core.Modelo;
 using Kepler7.Core.Patrones.Builder;
+using Kepler7.Core.Patrones.Command;
+using Kepler7.Core.Patrones.Facade;
+using Kepler7.Core.Patrones.Flyweight;
 using Kepler7.Core.Patrones.Prototype;
 using Kepler7.Core.Patrones.Strategy;
 using Kepler7.Core.Patrones.TemplateMethod;
@@ -30,6 +33,14 @@ namespace Kepler7.Game
         private readonly LaboratorioClonacion _laboratorio = LaboratorioClonacion.CrearConPrototiposBase();
         private readonly List<Equipo> _catalogoEquipo = Equipo.Catalogo();
 
+        // Command: todas las acciones del jugador pasan por el gestor (deshacer/rehacer + historial).
+        private readonly GestorComandos _gestor = new GestorComandos();
+
+        // Facade: el formulario solo habla con el control central, nunca con los subsistemas.
+        private readonly ControlCentral _control;
+        private bool _estacionApagada;
+        private Unidad? _defensorAMover;
+
         // Cada cuántos milisegundos pasa un tick (el último valor es la pausa).
         private static readonly string[] _nombresVelocidad = { "Lenta", "Normal", "Rápida", "Pausa" };
         private static readonly int[] _intervalosVelocidad = { 900, 600, 250, 0 };
@@ -53,10 +64,19 @@ namespace Kepler7.Game
         private ComboBox _cmbVelocidad = null!;
         private ComboBox _cmbIA = null!;
         private Label _lblInfoIA = null!;
+        private Label _lblBiblioteca = null!;
+        private ComboBox _cmbCarrilTripulantes = null!;
+        private Button _btnDeshacer = null!;
+        private Button _btnRehacer = null!;
+        private ListBox _lstComandos = null!;
+        private ComboBox _cmbCarrilReparar = null!;
+        private Button _btnEmergencia = null!;
+        private TextBox _txtControl = null!;
 
         public Form1()
         {
             InitializeComponent();
+            _control = new ControlCentral(_partida);
             _timerTick = new System.Windows.Forms.Timer(components!);
             _timerTick.Tick += Timer_Tick;
 
@@ -77,7 +97,7 @@ namespace Kepler7.Game
             BackColor = Paleta.Fondo;
             ForeColor = Paleta.Texto;
             Font = new Font("Segoe UI", 9f);
-            MinimumSize = new Size(1200, 780);
+            MinimumSize = new Size(1500, 820);
             StartPosition = FormStartPosition.CenterScreen;
 
             _lblEstado = new Label
@@ -96,15 +116,30 @@ namespace Kepler7.Game
             var barraCombate = ConstruirBarraCombate();
             var panelInferior = ConstruirPanelInferior();
             var panelDerecho = ConstruirPanelDerecho();
+            var panelIzquierdo = ConstruirPanelIzquierdo();
 
             // Con Dock, el último control agregado se acomoda primero: se agregan de adentro hacia afuera.
             Controls.Add(_tablero);
             Controls.Add(panelDerecho);
+            Controls.Add(panelIzquierdo);
             Controls.Add(panelInferior);
             Controls.Add(barraCombate);
             Controls.Add(_lblEstado);
 
+            // Botón de reiniciar en la misma barra de estado, pegado a la derecha.
+            var btnReiniciar = CrearBoton("⟳ Reiniciar partida", Point.Empty, 160, Reiniciar_Click);
+            btnReiniciar.Dock = DockStyle.Right;
+            _lblEstado.Controls.Add(btnReiniciar);
+
             _cmbRecetas.SelectedIndex = 0;
+        }
+
+        private void Reiniciar_Click(object? sender, EventArgs e)
+        {
+            var respuesta = MessageBox.Show("¿Reiniciar la partida? Se pierde todo el progreso actual.", "Reiniciar",
+                                            MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            // Reabre la aplicación desde cero: así también se reinician los contadores (ids, especies...).
+            if (respuesta == DialogResult.Yes) Application.Restart();
         }
 
         // Barra de arriba: iniciar oleada, velocidad y cambio de IA enemiga (Strategy).
@@ -181,7 +216,7 @@ namespace Kepler7.Game
             };
 
             // --- Builder ---
-            var grpAstillero = CrearGrupo("Astillero — Nave de apoyo  [Builder]", 146);
+            var grpAstillero = CrearGrupo("Astillero - Nave de apoyo  [Builder]", 146);
             _cmbRecetas = CrearCombo(new Point(12, 26), 350);
             _cmbRecetas.Items.AddRange(_recetas.Cast<object>().ToArray());
             _cmbRecetas.SelectedIndexChanged += (s, e) => ActualizarDescripcionReceta();
@@ -197,7 +232,7 @@ namespace Kepler7.Game
             grpLaboratorio.Controls.AddRange(new Control[] { _lstPrototipos, btnClonar });
 
             // --- Reserva ---
-            var grpReserva = CrearGrupo("Reserva — listas para desplegar", 222);
+            var grpReserva = CrearGrupo("Reserva - listas para desplegar", 222);
             _lstReserva = CrearLista(new Point(12, 26), new Size(350, 100));
             _lstReserva.SelectedIndexChanged += (s, e) => ActualizarDetalleReserva();
             _lblDetalleReserva = new Label { Location = new Point(12, 130), Size = new Size(350, 48), ForeColor = Paleta.TextoSuave };
@@ -212,6 +247,66 @@ namespace Kepler7.Game
             panelDerecho.Controls.Add(grpLaboratorio);
             panelDerecho.Controls.Add(grpAstillero);
             return panelDerecho;
+        }
+
+        // A la izquierda: control central (Facade), acciones con deshacer/rehacer (Command)
+        // y biblioteca de tripulantes (Flyweight).
+        private Panel ConstruirPanelIzquierdo()
+        {
+            var panelIzquierdo = new Panel
+            {
+                Dock = DockStyle.Left,
+                Width = 340,
+                Padding = new Padding(8),
+                BackColor = Paleta.Panel,
+                AutoScroll = true,
+                AutoScrollMinSize = new Size(0, 830),
+            };
+
+            // --- Flyweight ---
+            var grpBiblioteca = CrearGrupo("Biblioteca de tripulantes  [Flyweight]", 250);
+            var lblEnviar = new Label { Text = "Enviar tripulantes al núcleo de:", Location = new Point(12, 24), AutoSize = true, ForeColor = Paleta.TextoSuave };
+            _cmbCarrilTripulantes = CrearCombo(new Point(12, 46), 140);
+            _cmbCarrilTripulantes.Items.AddRange(Estacion.Subsistemas.Cast<object>().ToArray());
+            _cmbCarrilTripulantes.SelectedIndex = 0;
+            var btnEnviar = CrearBoton($"+{Partida.TripulantesPorEnvio} ({Partida.CostoEnvioTripulantes} cr)", new Point(162, 44), 140, BtnEnviarTripulantes_Click);
+            _lblBiblioteca = new Label { Location = new Point(12, 82), Size = new Size(290, 160), ForeColor = Paleta.TextoSuave };
+            grpBiblioteca.Controls.AddRange(new Control[] { lblEnviar, _cmbCarrilTripulantes, btnEnviar, _lblBiblioteca });
+
+            // --- Command ---
+            var grpComandos = CrearGrupo("Acciones del jugador  [Command]", 330);
+            _btnDeshacer = CrearBoton("↶ Deshacer", new Point(12, 26), 140, BtnDeshacer_Click);
+            _btnRehacer = CrearBoton("Rehacer ↷", new Point(162, 26), 140, BtnRehacer_Click);
+            _lstComandos = CrearLista(new Point(12, 62), new Size(290, 160));
+            var lblReparar = new Label { Text = "Reparar núcleo (entre oleadas):", Location = new Point(12, 230), AutoSize = true, ForeColor = Paleta.TextoSuave };
+            _cmbCarrilReparar = CrearCombo(new Point(12, 250), 140);
+            _cmbCarrilReparar.Items.AddRange(Estacion.Subsistemas.Cast<object>().ToArray());
+            _cmbCarrilReparar.SelectedIndex = 0;
+            var btnReparar = CrearBoton($"Reparar ({CurarComando.Costo} cr)", new Point(162, 248), 140, BtnReparar_Click);
+            var btnDisparo = CrearBoton($"Disparo orbital al enemigo elegido ({AtacarComando.Costo} cr)", new Point(12, 286), 290, BtnDisparo_Click);
+            grpComandos.Controls.AddRange(new Control[]
+            {
+                _btnDeshacer, _btnRehacer, _lstComandos, lblReparar, _cmbCarrilReparar, btnReparar, btnDisparo
+            });
+
+            // --- Facade ---
+            var grpControl = CrearGrupo("Control central  [Facade]", 230);
+            var btnIniciar = CrearBoton("Iniciar turno", new Point(12, 26), 92, BtnOleada_Click);
+            _btnEmergencia = CrearBoton("Emergencia", new Point(110, 26), 92, BtnEmergencia_Click);
+            var btnApagar = CrearBoton("Apagar", new Point(208, 26), 94, BtnApagar_Click);
+            btnApagar.BackColor = Color.FromArgb(170, 60, 70);
+            _txtControl = CrearTextoSoloLectura();
+            _txtControl.Dock = DockStyle.None;
+            _txtControl.Location = new Point(12, 62);
+            _txtControl.Size = new Size(290, 158);
+            _txtControl.Text = "Las tres operaciones coordinan a los 6 subsistemas: acá se ve la secuencia.";
+            grpControl.Controls.AddRange(new Control[] { btnIniciar, _btnEmergencia, btnApagar, _txtControl });
+
+            // Con Dock, el último control agregado queda arriba.
+            panelIzquierdo.Controls.Add(grpBiblioteca);
+            panelIzquierdo.Controls.Add(grpComandos);
+            panelIzquierdo.Controls.Add(grpControl);
+            return panelIzquierdo;
         }
 
         private static TextBox CrearTextoSoloLectura()
@@ -282,9 +377,18 @@ namespace Kepler7.Game
 
         #region Bucle de la partida (Timer)
 
+        // Iniciar la oleada pasa por la fachada: ella prepara los subsistemas y arranca la oleada.
         private void BtnOleada_Click(object? sender, EventArgs e)
         {
-            if (!_partida.IniciarOleada()) return;
+            if (_estacionApagada)
+            {
+                PreguntarNuevaPartida();
+                return;
+            }
+            MostrarPasosControl(_control.IniciarTurno());
+            if (_partida.Fase != FasePartida.Oleada) return;
+            _gestor.Limpiar($"Empieza la oleada {_partida.NumeroOleada}");
+            _defensorAMover = null;
             AplicarVelocidad();
             Refrescar();
         }
@@ -298,6 +402,8 @@ namespace Kepler7.Game
             if (_partida.Fase != FasePartida.Oleada)
             {
                 _timerTick.Stop();
+                _gestor.Limpiar("Terminó la oleada");
+                Refrescar();
                 if (_partida.Fase == FasePartida.Victoria)
                     MessageBox.Show("¡Salvaste Kepler-7!", "Victoria", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 else if (_partida.Fase == FasePartida.Derrota)
@@ -361,15 +467,16 @@ namespace Kepler7.Game
         private void BtnEnsamblar_Click(object? sender, EventArgs e)
         {
             var receta = (INaveApoyoBuilder)_cmbRecetas.SelectedItem!;
-            if (!_estacion.Gastar(receta.Costo))
+            if (_estacion.Creditos < receta.Costo)
             {
                 Registrar($"Astillero: no alcanzan los créditos para una nave {receta.NombreReceta} ({receta.Costo} cr).");
                 return;
             }
 
             // El director arma la nave paso a paso; la receta elegida decide cada pieza.
+            // Pagarla y mandarla a la reserva es un comando, así se puede deshacer.
             NaveApoyo nave = _astillero.Ensamblar(receta);
-            _estacion.AgregarAReserva(nave);
+            if (!EjecutarComando(new ConstruirComando(_estacion, nave))) return;
 
             Registrar($"Astillero: ensamblada {nave.NombreCompleto} (-{nave.Costo} cr)");
             foreach (var componente in nave.Componentes)
@@ -396,14 +503,14 @@ namespace Kepler7.Game
                 Registrar("Laboratorio: seleccioná un prototipo para clonar.");
                 return;
             }
-            if (!_estacion.Gastar(prototipo.Costo))
+            if (_estacion.Creditos < prototipo.Costo)
             {
                 Registrar($"Laboratorio: no alcanzan los créditos para clonar un {prototipo.Rol} ({prototipo.Costo} cr).");
                 return;
             }
 
             Tripulante clon = _laboratorio.Clonar(prototipo.Rol);
-            _estacion.AgregarAReserva(clon);
+            if (!EjecutarComando(new ConstruirComando(_estacion, clon))) return;
 
             Registrar($"Laboratorio: {clon.NombreCompleto} clonado de {prototipo.NombreCompleto} (-{prototipo.Costo} cr)");
             Registrar($"   · equipo copiado: {string.Join(", ", clon.Equipamiento.Select(eq => eq.Nombre))}");
@@ -439,6 +546,30 @@ namespace Kepler7.Game
 
         #endregion
 
+        #region Flyweight: biblioteca de tripulantes
+
+        private void BtnEnviarTripulantes_Click(object? sender, EventArgs e)
+        {
+            int carril = _cmbCarrilTripulantes.SelectedIndex;
+            if (!_partida.EnviarTripulantes(carril))
+                Registrar($"Tripulación: no se pudo enviar a {Estacion.Subsistemas[carril]} (faltan créditos o el subsistema cayó).");
+            Refrescar();
+        }
+
+        private void ActualizarBiblioteca()
+        {
+            var tripulacion = _partida.Tripulacion;
+            _lblBiblioteca.Text =
+                $"Tripulantes vivos: {tripulacion.TotalVivos:N0} de {tripulacion.TotalGenerados:N0}\n" +
+                $"Especies en la fábrica: {tripulacion.EspeciesEnFabrica} (siempre 5)\n\n" +
+                $"Comparación con los primeros 10.000:\n" +
+                $"CON Flyweight: {tripulacion.ObjetosEspecieConFlyweight} objetos Especie, {tripulacion.BytesConFlyweight / 1024} KB\n" +
+                $"SIN Flyweight: {tripulacion.ObjetosEspecieSinFlyweight:N0} objetos Especie, {tripulacion.BytesSinFlyweight / 1024} KB\n\n" +
+                "Los tripulantes protegen el núcleo: un enemigo que llega al final mata tripulantes, y solo daña el núcleo cuando no queda ninguno.";
+        }
+
+        #endregion
+
         #region Tablero
 
         private void Tablero_CeldaClick(object? sender, CeldaEventArgs e)
@@ -449,6 +580,7 @@ namespace Kepler7.Game
             if (ocupante is Enemigo enemigo)
             {
                 _enemigoSeleccionado = enemigo;
+                _defensorAMover = null;
                 _tablero.Seleccionada = enemigo;
                 Registrar($"[{subsistema}] {enemigo.NombreCompleto}: {enemigo.Descripcion()}");
                 ActualizarInfoIA();
@@ -458,10 +590,18 @@ namespace Kepler7.Game
             if (ocupante != null)
             {
                 Registrar($"[{subsistema}] {ocupante.NombreCompleto}: {ocupante.Descripcion()}");
+                if (_partida.Fase != FasePartida.Preparacion) return;
+
+                // Entre oleadas, un clic en un defensor lo elige para moverlo (otro clic lo suelta).
+                _defensorAMover = ocupante == _defensorAMover ? null : ocupante;
+                _tablero.Seleccionada = _defensorAMover;
+                if (_defensorAMover != null) Registrar("   · hacé clic en una celda azul libre para moverlo.");
+                _tablero.Invalidate();
                 return;
             }
 
-            var unidad = _lstReserva.SelectedItem as Unidad;
+            // Celda libre: mueve el defensor elegido o despliega la unidad elegida de la reserva.
+            var unidad = _defensorAMover ?? _lstReserva.SelectedItem as Unidad;
             if (unidad == null)
             {
                 Registrar("Seleccioná primero una unidad de la reserva.");
@@ -478,9 +618,124 @@ namespace Kepler7.Game
                 return;
             }
 
-            _partida.Desplegar(unidad, e.Carril, e.Columna);
-            Registrar($"Despliegue: {unidad.NombreCompleto} defiende {subsistema} (columna {e.Columna + 1}).");
+            if (EjecutarComando(new MoverComando(_partida, unidad, e.Carril, e.Columna)))
+                Registrar($"Despliegue: {unidad.NombreCompleto} defiende {subsistema} (columna {e.Columna + 1}).");
+            _defensorAMover = null;
+            _tablero.Seleccionada = null;
             Refrescar();
+        }
+
+        #endregion
+
+        #region Facade: control central
+
+        private void BtnEmergencia_Click(object? sender, EventArgs e)
+        {
+            MostrarPasosControl(_control.EntrarEnEmergencia());
+            Refrescar();
+        }
+
+        private void BtnApagar_Click(object? sender, EventArgs e)
+        {
+            var respuesta = MessageBox.Show("¿Apagar la estación? La partida termina.", "Apagar Kepler-7",
+                                            MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            if (respuesta != DialogResult.Yes) return;
+
+            _timerTick.Stop();
+            MostrarPasosControl(_control.ApagarEstacion());
+            Refrescar();
+
+            _estacionApagada = true;
+            PreguntarNuevaPartida();
+        }
+
+        // La partida terminó porque se apagó la estación: se ofrece empezar una nueva.
+        // Si el jugador dice que no, solo puede reiniciar con el botón "Reiniciar partida".
+        private void PreguntarNuevaPartida()
+        {
+            var nueva = MessageBox.Show("Kepler-7 fue apagada y la partida terminó.\n¿Querés empezar una partida nueva?",
+                                        "Estación apagada", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            if (nueva == DialogResult.Yes) Application.Restart();
+        }
+
+        // Muestra en el panel la secuencia de acciones que coordinó la fachada.
+        private void MostrarPasosControl(List<string> pasos)
+        {
+            _txtControl.Text = string.Join(Environment.NewLine, pasos);
+            foreach (var paso in pasos) Registrar(paso);
+        }
+
+        // Un subsistema está crítico si su núcleo bajó a menos de la mitad (y no cayó).
+        private bool HayCarrilCritico()
+        {
+            for (int carril = 0; carril < Grilla.Carriles; carril++)
+            {
+                int integridad = _partida.IntegridadDelCarril(carril);
+                if (integridad > 0 && integridad < Partida.IntegridadMaxima / 2) return true;
+            }
+            return false;
+        }
+
+        private void ActualizarControl()
+        {
+            _btnEmergencia.Enabled = _control.EmergenciaDisponible;
+            bool alerta = _control.EmergenciaDisponible && HayCarrilCritico();
+            _btnEmergencia.Text = alerta ? "¡EMERGENCIA!" : "Emergencia";
+            _btnEmergencia.BackColor = alerta ? Color.FromArgb(220, 120, 40) : Paleta.Acento;
+        }
+
+        #endregion
+
+        #region Command: deshacer, rehacer y acciones de la estación
+
+        // Todas las acciones del jugador pasan por acá: el gestor las ejecuta y las guarda.
+        private bool EjecutarComando(IComando comando)
+        {
+            bool ok = _gestor.Ejecutar(comando);
+            if (!ok) Registrar("No se pudo: " + comando.Descripcion + " (faltan créditos o no se puede en este momento).");
+            Refrescar();
+            return ok;
+        }
+
+        private void BtnDeshacer_Click(object? sender, EventArgs e)
+        {
+            Registrar(_gestor.Deshacer());
+            _defensorAMover = null;
+            Refrescar();
+        }
+
+        private void BtnRehacer_Click(object? sender, EventArgs e)
+        {
+            Registrar(_gestor.Rehacer());
+            Refrescar();
+        }
+
+        private void BtnReparar_Click(object? sender, EventArgs e)
+        {
+            EjecutarComando(new CurarComando(_partida, _cmbCarrilReparar.SelectedIndex));
+        }
+
+        private void BtnDisparo_Click(object? sender, EventArgs e)
+        {
+            if (_enemigoSeleccionado == null || !_enemigoSeleccionado.EstaViva)
+            {
+                Registrar("Primero hacé clic en un enemigo del tablero para elegirlo.");
+                return;
+            }
+            EjecutarComando(new AtacarComando(_partida, _enemigoSeleccionado));
+        }
+
+        private void ActualizarComandos()
+        {
+            _btnDeshacer.Enabled = _gestor.PuedeDeshacer;
+            _btnRehacer.Enabled = _gestor.PuedeRehacer;
+
+            if (_lstComandos.Items.Count == _gestor.Historial.Count) return;
+            _lstComandos.BeginUpdate();
+            _lstComandos.Items.Clear();
+            foreach (var linea in _gestor.Historial) _lstComandos.Items.Add(linea);
+            _lstComandos.TopIndex = Math.Max(0, _lstComandos.Items.Count - 1);
+            _lstComandos.EndUpdate();
         }
 
         #endregion
@@ -505,6 +760,9 @@ namespace Kepler7.Game
             _lstReserva.EndUpdate();
 
             ActualizarDetalleReserva();
+            ActualizarBiblioteca();
+            ActualizarComandos();
+            ActualizarControl();
 
             if (_enemigoSeleccionado != null && !_enemigoSeleccionado.EstaViva)
             {
@@ -528,7 +786,8 @@ namespace Kepler7.Game
             }
             else
             {
-                _btnOleada.Enabled = false;
+                // Con la estación apagada el botón sigue activo para volver a ofrecer una partida nueva.
+                _btnOleada.Enabled = _estacionApagada;
                 _btnOleada.Text = _partida.Fase == FasePartida.Oleada ? "Oleada en curso..." : "Partida terminada";
             }
 

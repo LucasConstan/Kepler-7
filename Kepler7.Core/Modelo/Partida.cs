@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Kepler7.Core.Patrones.Builder;
+using Kepler7.Core.Patrones.Flyweight;
 using Kepler7.Core.Patrones.Strategy;
 using Kepler7.Core.Patrones.TemplateMethod;
 
@@ -37,6 +38,15 @@ namespace Kepler7.Core.Modelo
         public FasePartida Fase { get; private set; } = FasePartida.Preparacion;
         public int Tick { get; private set; }
         public int EnemigosDerrotados { get; private set; }
+
+        // FLYWEIGHT: la tripulación de la estación. Es el escudo de cada núcleo.
+        public BibliotecaTripulantes Tripulacion { get; } = new BibliotecaTripulantes();
+
+        // Cuántos tripulantes mueren por cada punto de daño que llega al núcleo.
+        // Mueren rápido a propósito: la tripulación cae antes que el núcleo.
+        public const int TripulantesPorPuntoDeDanio = 30;
+        public const int TripulantesPorEnvio = 250;
+        public const int CostoEnvioTripulantes = 50;
 
         // Mensajes importantes de la partida (inicio de oleada, bajas, golpes al núcleo...).
         public event Action<string>? Mensaje;
@@ -173,6 +183,19 @@ namespace Kepler7.Core.Modelo
         internal void GolpearNucleo(Enemigo enemigo)
         {
             int carril = enemigo.Carril;
+
+            // Mientras queden tripulantes en el subsistema, el golpe los mata a ellos y no llega al núcleo.
+            if (Tripulacion.TripulantesEn(carril) > 0)
+            {
+                int muertos = Tripulacion.Eliminar(carril, enemigo.Danio * 2 * TripulantesPorPuntoDeDanio);
+                Grilla.Quitar(enemigo);
+                Avisar($"¡{enemigo.NombreCompleto} atacó {Estacion.Subsistemas[carril]}! Murieron {muertos} tripulantes " +
+                       $"(quedan {Tripulacion.TripulantesEn(carril)}).");
+                if (Tripulacion.TripulantesEn(carril) == 0)
+                    Avisar($"¡{Estacion.Subsistemas[carril]} se quedó sin tripulación: el núcleo está expuesto!");
+                return;
+            }
+
             int antes = _integridad[carril];
             _integridad[carril] = Math.Max(0, antes - enemigo.Danio * 2);
             Grilla.Quitar(enemigo);
@@ -187,6 +210,44 @@ namespace Kepler7.Core.Modelo
                 Fase = FasePartida.Derrota;
                 Avisar($"DERROTA: cayeron {CarrilesCaidos} subsistemas. Kepler-7 se perdió.");
             }
+        }
+
+        // --- Reparación del núcleo (la usan CurarComando y la emergencia del ControlCentral) ---
+
+        // Repara el núcleo de un carril y devuelve cuánto se reparó. Un carril caído no se puede reparar.
+        public int RepararNucleo(int carril, int cantidad)
+        {
+            int antes = _integridad[carril];
+            if (antes == 0) return 0;
+            _integridad[carril] = Math.Min(IntegridadMaxima, antes + cantidad);
+            return _integridad[carril] - antes;
+        }
+
+        // Vuelve el núcleo a un valor anterior (para deshacer una reparación).
+        internal void RestaurarIntegridad(int carril, int valor)
+        {
+            _integridad[carril] = valor;
+        }
+
+        // FLYWEIGHT: manda tripulantes nuevos a un subsistema (se puede durante la oleada).
+        // Un subsistema caído ya no se puede reforzar.
+        public bool EnviarTripulantes(int carril)
+        {
+            if (Fase == FasePartida.Victoria || Fase == FasePartida.Derrota) return false;
+            if (_integridad[carril] == 0 || !Estacion.Gastar(CostoEnvioTripulantes)) return false;
+
+            Tripulacion.Agregar(carril, TripulantesPorEnvio);
+            Avisar($"{TripulantesPorEnvio} tripulantes llegan a {Estacion.Subsistemas[carril]} " +
+                   $"(ahora hay {Tripulacion.TripulantesEn(carril)}, -{CostoEnvioTripulantes} cr).");
+            return true;
+        }
+
+        // Termina la partida porque el operador apagó la estación (lo usa el ControlCentral).
+        public void Apagar()
+        {
+            if (Fase == FasePartida.Victoria || Fase == FasePartida.Derrota) return;
+            Fase = FasePartida.Derrota;
+            Avisar("La estación fue apagada por el operador. Fin de la partida.");
         }
 
         // --- Strategy: cambiar la IA durante la partida ---
