@@ -32,6 +32,7 @@ namespace Kepler7.Game
             menuPrincipal = new MenuStrip();
             menuAstillero = new ToolStripMenuItem();
             menuLaboratorio = new ToolStripMenuItem();
+            menuInventario = new ToolStripMenuItem();
             menuTripulacion = new ToolStripMenuItem();
             menuControlCentral = new ToolStripMenuItem();
             menuReiniciar = new ToolStripMenuItem();
@@ -114,6 +115,17 @@ namespace Kepler7.Game
             btnCelda_5_6 = new Button();
             btnCelda_5_7 = new Button();
             btnCelda_5_8 = new Button();
+            grpComandante = new GroupBox();
+            lblEstadoHeroe = new Label();
+            lblVidaHeroe = new Label();
+            pbVidaHeroe = new ProgressBar();
+            lblDanioHeroe = new Label();
+            lblCadena = new Label();
+            lstCadena = new ListBox();
+            btnSubirDefensa = new Button();
+            btnBajarDefensa = new Button();
+            grpRecorrido = new GroupBox();
+            lstRecorrido = new ListBox();
             grpReserva = new GroupBox();
             lstReserva = new ListBox();
             lblDetalleReserva = new Label();
@@ -134,6 +146,8 @@ namespace Kepler7.Game
             grpOleada.SuspendLayout();
             grpEstrategia.SuspendLayout();
             tablaTablero.SuspendLayout();
+            grpComandante.SuspendLayout();
+            grpRecorrido.SuspendLayout();
             grpReserva.SuspendLayout();
             grpComandos.SuspendLayout();
             grpHistorial.SuspendLayout();
@@ -142,7 +156,7 @@ namespace Kepler7.Game
             //
             // menuPrincipal
             //
-            menuPrincipal.Items.AddRange(new ToolStripItem[] { menuAstillero, menuLaboratorio, menuTripulacion, menuControlCentral, menuReiniciar });
+            menuPrincipal.Items.AddRange(new ToolStripItem[] { menuAstillero, menuLaboratorio, menuInventario, menuTripulacion, menuControlCentral, menuReiniciar });
             menuPrincipal.Location = new Point(0, 0);
             menuPrincipal.Name = "menuPrincipal";
             menuPrincipal.Size = new Size(1290, 24);
@@ -162,6 +176,13 @@ namespace Kepler7.Game
             menuLaboratorio.Size = new Size(150, 20);
             menuLaboratorio.Text = "Laboratorio [Prototype]";
             menuLaboratorio.Click += menuLaboratorio_Click;
+            //
+            // menuInventario
+            //
+            menuInventario.Name = "menuInventario";
+            menuInventario.Size = new Size(130, 20);
+            menuInventario.Text = "Inventario [Visitor]";
+            menuInventario.Click += menuInventario_Click;
             //
             // menuTripulacion
             //
@@ -1108,6 +1129,115 @@ namespace Kepler7.Game
             btnCelda_5_8.UseVisualStyleBackColor = true;
             btnCelda_5_8.Click += btnCelda_Click;
             //
+            // grpComandante
+            //
+            grpComandante.Controls.Add(lblEstadoHeroe);
+            grpComandante.Controls.Add(lblVidaHeroe);
+            grpComandante.Controls.Add(pbVidaHeroe);
+            grpComandante.Controls.Add(lblDanioHeroe);
+            grpComandante.Controls.Add(lblCadena);
+            grpComandante.Controls.Add(lstCadena);
+            grpComandante.Controls.Add(btnSubirDefensa);
+            grpComandante.Controls.Add(btnBajarDefensa);
+            grpComandante.Location = new Point(972, 58);
+            grpComandante.Name = "grpComandante";
+            grpComandante.Size = new Size(306, 200);
+            grpComandante.TabIndex = 10;
+            grpComandante.TabStop = false;
+            grpComandante.Text = "Comandante  [State]";
+            //
+            // lblEstadoHeroe
+            //
+            lblEstadoHeroe.AutoSize = true;
+            lblEstadoHeroe.Location = new Point(10, 24);
+            lblEstadoHeroe.Name = "lblEstadoHeroe";
+            lblEstadoHeroe.Size = new Size(45, 15);
+            lblEstadoHeroe.TabIndex = 0;
+            lblEstadoHeroe.Text = "Estado:";
+            //
+            // lblVidaHeroe
+            //
+            lblVidaHeroe.AutoSize = true;
+            lblVidaHeroe.Location = new Point(10, 44);
+            lblVidaHeroe.Name = "lblVidaHeroe";
+            lblVidaHeroe.Size = new Size(32, 15);
+            lblVidaHeroe.TabIndex = 1;
+            lblVidaHeroe.Text = "Vida:";
+            //
+            // pbVidaHeroe
+            //
+            pbVidaHeroe.Location = new Point(10, 62);
+            pbVidaHeroe.Name = "pbVidaHeroe";
+            pbVidaHeroe.Size = new Size(286, 18);
+            pbVidaHeroe.TabIndex = 2;
+            //
+            // lblDanioHeroe
+            //
+            lblDanioHeroe.AutoSize = true;
+            lblDanioHeroe.Location = new Point(170, 24);
+            lblDanioHeroe.Name = "lblDanioHeroe";
+            lblDanioHeroe.Size = new Size(38, 15);
+            lblDanioHeroe.TabIndex = 3;
+            lblDanioHeroe.Text = "Daño:";
+            //
+            // lblCadena
+            //
+            lblCadena.AutoSize = true;
+            lblCadena.Location = new Point(10, 86);
+            lblCadena.Name = "lblCadena";
+            lblCadena.Size = new Size(165, 15);
+            lblCadena.TabIndex = 4;
+            lblCadena.Text = "Cadena de defensas  [Chain]:";
+            //
+            // lstCadena
+            //
+            lstCadena.FormattingEnabled = true;
+            lstCadena.IntegralHeight = false;
+            lstCadena.Location = new Point(10, 104);
+            lstCadena.Name = "lstCadena";
+            lstCadena.Size = new Size(240, 88);
+            lstCadena.TabIndex = 5;
+            //
+            // btnSubirDefensa
+            //
+            btnSubirDefensa.Location = new Point(256, 104);
+            btnSubirDefensa.Name = "btnSubirDefensa";
+            btnSubirDefensa.Size = new Size(40, 42);
+            btnSubirDefensa.TabIndex = 6;
+            btnSubirDefensa.Text = "↑";
+            btnSubirDefensa.UseVisualStyleBackColor = true;
+            btnSubirDefensa.Click += btnSubirDefensa_Click;
+            //
+            // btnBajarDefensa
+            //
+            btnBajarDefensa.Location = new Point(256, 150);
+            btnBajarDefensa.Name = "btnBajarDefensa";
+            btnBajarDefensa.Size = new Size(40, 42);
+            btnBajarDefensa.TabIndex = 7;
+            btnBajarDefensa.Text = "↓";
+            btnBajarDefensa.UseVisualStyleBackColor = true;
+            btnBajarDefensa.Click += btnBajarDefensa_Click;
+            //
+            // grpRecorrido
+            //
+            grpRecorrido.Controls.Add(lstRecorrido);
+            grpRecorrido.Location = new Point(490, 530);
+            grpRecorrido.Name = "grpRecorrido";
+            grpRecorrido.Size = new Size(282, 144);
+            grpRecorrido.TabIndex = 11;
+            grpRecorrido.TabStop = false;
+            grpRecorrido.Text = "Recorrido del último golpe";
+            //
+            // lstRecorrido
+            //
+            lstRecorrido.Dock = DockStyle.Fill;
+            lstRecorrido.FormattingEnabled = true;
+            lstRecorrido.IntegralHeight = false;
+            lstRecorrido.Location = new Point(3, 19);
+            lstRecorrido.Name = "lstRecorrido";
+            lstRecorrido.Size = new Size(276, 122);
+            lstRecorrido.TabIndex = 0;
+            //
             // grpReserva
             //
             grpReserva.Controls.Add(lstReserva);
@@ -1226,7 +1356,7 @@ namespace Kepler7.Game
             grpHistorial.Controls.Add(txtHistorial);
             grpHistorial.Location = new Point(12, 530);
             grpHistorial.Name = "grpHistorial";
-            grpHistorial.Size = new Size(760, 144);
+            grpHistorial.Size = new Size(470, 144);
             grpHistorial.TabIndex = 8;
             grpHistorial.TabStop = false;
             grpHistorial.Text = "Historial de turnos  [Template Method]";
@@ -1240,7 +1370,7 @@ namespace Kepler7.Game
             txtHistorial.Name = "txtHistorial";
             txtHistorial.ReadOnly = true;
             txtHistorial.ScrollBars = ScrollBars.Vertical;
-            txtHistorial.Size = new Size(754, 122);
+            txtHistorial.Size = new Size(464, 122);
             txtHistorial.TabIndex = 0;
             //
             // grpRegistro
@@ -1281,6 +1411,8 @@ namespace Kepler7.Game
             Controls.Add(grpEstrategia);
             Controls.Add(lblLeyenda);
             Controls.Add(tablaTablero);
+            Controls.Add(grpComandante);
+            Controls.Add(grpRecorrido);
             Controls.Add(grpReserva);
             Controls.Add(grpComandos);
             Controls.Add(grpHistorial);
@@ -1297,6 +1429,9 @@ namespace Kepler7.Game
             grpOleada.PerformLayout();
             grpEstrategia.ResumeLayout(false);
             tablaTablero.ResumeLayout(false);
+            grpComandante.ResumeLayout(false);
+            grpComandante.PerformLayout();
+            grpRecorrido.ResumeLayout(false);
             grpReserva.ResumeLayout(false);
             grpComandos.ResumeLayout(false);
             grpComandos.PerformLayout();
@@ -1313,6 +1448,7 @@ namespace Kepler7.Game
         private MenuStrip menuPrincipal;
         private ToolStripMenuItem menuAstillero;
         private ToolStripMenuItem menuLaboratorio;
+        private ToolStripMenuItem menuInventario;
         private ToolStripMenuItem menuTripulacion;
         private ToolStripMenuItem menuControlCentral;
         private ToolStripMenuItem menuReiniciar;
@@ -1395,6 +1531,17 @@ namespace Kepler7.Game
         private Button btnCelda_5_6;
         private Button btnCelda_5_7;
         private Button btnCelda_5_8;
+        private GroupBox grpComandante;
+        private Label lblEstadoHeroe;
+        private Label lblVidaHeroe;
+        private ProgressBar pbVidaHeroe;
+        private Label lblDanioHeroe;
+        private Label lblCadena;
+        private ListBox lstCadena;
+        private Button btnSubirDefensa;
+        private Button btnBajarDefensa;
+        private GroupBox grpRecorrido;
+        private ListBox lstRecorrido;
         private GroupBox grpReserva;
         private ListBox lstReserva;
         private Label lblDetalleReserva;

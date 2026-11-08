@@ -1,7 +1,9 @@
 using Kepler7.Core.Modelo;
+using Kepler7.Core.Patrones.ChainOfResponsibility;
 using Kepler7.Core.Patrones.Command;
 using Kepler7.Core.Patrones.Facade;
 using Kepler7.Core.Patrones.Prototype;
+using Kepler7.Core.Patrones.State;
 using Kepler7.Core.Patrones.Strategy;
 using Kepler7.Core.Patrones.TemplateMethod;
 
@@ -39,6 +41,7 @@ namespace Kepler7.Game
         private Unidad? _defensorAMover;
         private bool _estacionApagada;
         private int _lineasHistorial;
+        private Golpe? _golpeMostrado;
 
         public FormPrincipal()
         {
@@ -82,6 +85,13 @@ namespace Kepler7.Game
         private void menuLaboratorio_Click(object? sender, EventArgs e)
         {
             using var ventana = new FormLaboratorio(_partida, _gestor, _laboratorio, Registrar);
+            ventana.ShowDialog(this);
+            Refrescar();
+        }
+
+        private void menuInventario_Click(object? sender, EventArgs e)
+        {
+            using var ventana = new FormInventario(_partida, Registrar);
             ventana.ShowDialog(this);
             Refrescar();
         }
@@ -414,6 +424,83 @@ namespace Kepler7.Game
 
         #endregion
 
+        #region Chain of Responsibility: cadena de defensas
+
+        // Se vuelve a armar en cada refresco porque el nombre del escudo muestra su carga.
+        private void RefrescarCadena(Heroe heroe)
+        {
+            int seleccion = lstCadena.SelectedIndex;
+
+            lstCadena.BeginUpdate();
+            lstCadena.Items.Clear();
+            foreach (Defensa defensa in heroe.ObtenerCadena().ObtenerDefensas())
+            {
+                lstCadena.Items.Add(defensa.ObtenerNombre());
+            }
+            lstCadena.SelectedIndex = seleccion;
+            lstCadena.EndUpdate();
+        }
+
+        private void RefrescarRecorrido(Heroe heroe)
+        {
+            Golpe? golpe = heroe.ObtenerUltimoGolpe();
+            if (golpe == null || golpe == _golpeMostrado)
+            {
+                return;
+            }
+
+            _golpeMostrado = golpe;
+            lstRecorrido.Items.Clear();
+            foreach (string paso in golpe.ObtenerPasos())
+            {
+                lstRecorrido.Items.Add(paso);
+            }
+        }
+
+        private void btnSubirDefensa_Click(object? sender, EventArgs e)
+        {
+            int posicion = lstCadena.SelectedIndex;
+            if (posicion > 0)
+            {
+                _partida.ObtenerHeroe().ObtenerCadena().Subir(posicion);
+                lstCadena.SelectedIndex = posicion - 1;
+                Refrescar();
+            }
+        }
+
+        private void btnBajarDefensa_Click(object? sender, EventArgs e)
+        {
+            int posicion = lstCadena.SelectedIndex;
+            if (posicion >= 0 && posicion < lstCadena.Items.Count - 1)
+            {
+                _partida.ObtenerHeroe().ObtenerCadena().Bajar(posicion);
+                lstCadena.SelectedIndex = posicion + 1;
+                Refrescar();
+            }
+        }
+
+        #endregion
+
+        // STATE: el panel le pregunta todo al estado actual, sin preguntar en qué estado está.
+        // En batalla la reserva no se usa, así que el panel ocupa su lugar.
+        private void RefrescarPanelComandante()
+        {
+            Heroe heroe = _partida.ObtenerHeroe();
+
+            lblEstadoHeroe.Text = "Estado: " + heroe.ObtenerEstado().ObtenerNombre();
+            lblVidaHeroe.Text = "Vida: " + heroe.Vida + " / " + heroe.VidaMaxima;
+            pbVidaHeroe.Maximum = heroe.VidaMaxima;
+            pbVidaHeroe.Value = heroe.Vida;
+            lblDanioHeroe.Text = "Daño: " + heroe.Danio;
+
+            RefrescarCadena(heroe);
+            RefrescarRecorrido(heroe);
+
+            bool enBatalla = _partida.Fase == FasePartida.Oleada;
+            grpComandante.Visible = enBatalla;
+            grpReserva.Visible = !enBatalla;
+        }
+
         private void Refrescar()
         {
             // Un enemigo elegido deja de estarlo si murió o si salió del tablero (al golpear el núcleo).
@@ -423,6 +510,8 @@ namespace Kepler7.Game
             RefrescarTablero();
             RefrescarReserva();
             RefrescarComandos();
+            RefrescarPanelComandante();
+            menuInventario.Enabled = _partida.Fase == FasePartida.Preparacion;
             ActualizarInfoIA();
 
             string fase = _partida.Fase == FasePartida.Preparacion ? "Preparación"

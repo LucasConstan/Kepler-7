@@ -4,6 +4,9 @@ using Kepler7.Core.Patrones.Builder;
 using Kepler7.Core.Patrones.Flyweight;
 using Kepler7.Core.Patrones.Strategy;
 using Kepler7.Core.Patrones.TemplateMethod;
+using Kepler7.Core.Patrones.State;
+using Kepler7.Core.Patrones.ChainOfResponsibility;
+using Kepler7.Core.Patrones.Visitor;
 
 namespace Kepler7.Core.Modelo
 {
@@ -30,6 +33,8 @@ namespace Kepler7.Core.Modelo
         private readonly Contexto _contexto;
         private int _indiceOleada;
         private int _tickOleada;
+        private Heroe _heroe;
+        private Inventario _inventario;
 
         public Estacion Estacion { get; }
         public Grilla Grilla { get; } = new Grilla();
@@ -57,12 +62,58 @@ namespace Kepler7.Core.Modelo
             Azar = semilla.HasValue ? new Random(semilla.Value) : new Random();
             _oleadas = Campania.CrearOleadas();
             _contexto = new Contexto(this);
+            _heroe = new Heroe();
+            Estacion.AgregarAReserva(_heroe);
+
+            _inventario = new Inventario();
+            _inventario.Agregar(new ItemArma("Rifle reforzado", 5));
+            _inventario.Agregar(new ItemModuloDefensa("Módulo de evasión", new DefensaEvasion(Azar)));
+            _inventario.Agregar(new ItemModuloDefensa("Módulo de escudo", new DefensaEscudo()));
+
             for (int i = 0; i < _integridad.Length; i++) _integridad[i] = IntegridadMaxima;
         }
 
         public Oleada OleadaActual => _oleadas[_indiceOleada];
         public int NumeroOleada => _indiceOleada + 1;
         public int TotalOleadas => _oleadas.Count;
+
+        public Inventario ObtenerInventario()
+        {
+            return _inventario;
+        }
+
+        // VISITOR: un ítem nuevo por cada oleada superada.
+        private void EntregarPremio()
+        {
+            ItemInventario? premio = null;
+
+            switch (_indiceOleada)
+            {
+                case 0:
+                    premio = new ItemArmadura("Armadura táctica", 50);
+                    break;
+                case 1:
+                    premio = new ItemArma("Rifle de plasma", 10);
+                    break;
+                case 2:
+                    premio = new ItemArmadura("Exoarmadura", 100);
+                    break;
+                case 3:
+                    premio = new ItemArma("Cañón de riel", 20);
+                    break;
+            }
+
+            if (premio != null)
+            {
+                _inventario.Agregar(premio);
+                Avisar("Nuevo ítem en el inventario: " + premio.ObtenerNombre());
+            }
+        }
+
+        public Heroe ObtenerHeroe()
+        {
+            return _heroe;
+        }
 
         public int IntegridadDelCarril(int carril) => _integridad[carril];
 
@@ -151,6 +202,15 @@ namespace Kepler7.Core.Modelo
             foreach (var defensor in Grilla.Defensores()) defensor.Vida = defensor.VidaMaxima;
             Avisar($"Oleada {NumeroOleada} superada: +{premio} créditos y las unidades se reparan.");
 
+            // STATE: el héroe vuelve a Normal. Si cayó, ya no está en el tablero y regresa a la reserva.
+            bool heroeCaido = !_heroe.EstaViva;
+            _heroe.Restaurar();
+            if (heroeCaido)
+            {
+                Estacion.AgregarAReserva(_heroe);
+                Avisar($"{_heroe.NombreCompleto} se recuperó y volvió a la reserva.");
+            }
+
             if (_indiceOleada == _oleadas.Count - 1)
             {
                 Fase = FasePartida.Victoria;
@@ -158,6 +218,7 @@ namespace Kepler7.Core.Modelo
             }
             else
             {
+                EntregarPremio();
                 _indiceOleada++;
                 Fase = FasePartida.Preparacion;
             }
