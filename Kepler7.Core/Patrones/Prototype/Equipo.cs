@@ -1,11 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace Kepler7.Core.Patrones.Prototype
 {
-    /// <summary>
-    /// Pieza de equipamiento de un tripulante. También es un prototipo: cada tripulante
-    /// clonado recibe su propia copia, así que modificar el equipo del clon no toca al original.
-    /// </summary>
+    // Una pieza de equipamiento. También se clona: cada tripulante clonado recibe su propia copia.
     public class Equipo : IPrototipo<Equipo>
     {
         public string Nombre { get; }
@@ -21,26 +18,41 @@ namespace Kepler7.Core.Patrones.Prototype
             Costo = costo;
         }
 
-        public Equipo Clonar() => (Equipo)MemberwiseClone();
+        public Equipo Clonar()
+        {
+            return (Equipo)MemberwiseClone();
+        }
 
         public override string ToString()
         {
-            var bonus = new List<string>();
-            if (BonusDanio > 0) bonus.Add($"+{BonusDanio} daño");
-            if (BonusVida > 0) bonus.Add($"+{BonusVida} vida");
-            return $"{Nombre} ({string.Join(", ", bonus)}) - {Costo} cr";
+            string bonus = "";
+            if (BonusDanio > 0)
+            {
+                bonus = "+" + BonusDanio + " daño";
+            }
+
+            if (BonusVida > 0)
+            {
+                // Solo hace falta la coma si ya había algo escrito antes.
+                if (bonus != "")
+                {
+                    bonus = bonus + ", ";
+                }
+                bonus = bonus + "+" + BonusVida + " vida";
+            }
+
+            return Nombre + " (" + bonus + ") - " + Costo + " cr";
         }
 
-        /// <summary>Equipamiento que se puede comprar para los tripulantes de la reserva.</summary>
+        // El equipamiento que se puede comprar para los tripulantes de la reserva.
         public static List<Equipo> Catalogo()
         {
-            return new List<Equipo>
-            {
-                new Equipo("Rifle de plasma", 10, 0, 40),
-                new Equipo("Blindaje táctico", 0, 50, 35),
-                new Equipo("Implante de reflejos", 5, 20, 45),
-                new Equipo("Granadas EMP", 15, 0, 55),
-            };
+            List<Equipo> catalogo = new List<Equipo>();
+            catalogo.Add(new Equipo("Rifle de plasma", 10, 0, 40));
+            catalogo.Add(new Equipo("Blindaje táctico", 0, 50, 35));
+            catalogo.Add(new Equipo("Implante de reflejos", 5, 20, 45));
+            catalogo.Add(new Equipo("Granadas EMP", 15, 0, 55));
+            return catalogo;
         }
     }
 }

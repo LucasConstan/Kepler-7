@@ -1,5 +1,6 @@
 namespace Kepler7.Core.Patrones.State
 {
+    // No juega ni pega. Desde este estado no se pasa a otro solo: lo saca Restaurar al terminar la oleada.
     public class EstadoCaido : IEstadoHeroe
     {
         public string ObtenerNombre()

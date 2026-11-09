@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 
 namespace Kepler7.Core.Patrones.State
 {
+    // Pierde dos turnos. En el tercero ya juega, porque AlIniciarTurno corre antes de
+    // preguntar si puede actuar, y ahí es donde sale de este estado.
     public class EstadoAturdido : IEstadoHeroe
     {
         private int _turnosRestantes = 2;

@@ -1,10 +1,7 @@
 namespace Kepler7.Core.Patrones.Flyweight
 {
-    /// <summary>
-    /// FLYWEIGHT - Contexto. Un tripulante de la estación: guarda solo su estado EXTRÍNSECO
-    /// (identificador, nombre, rango y el subsistema donde trabaja) y una referencia a su especie,
-    /// que es compartida. Se llama TripulanteEstacion para no chocar con el Tripulante del Prototype.
-    /// </summary>
+    // Guarda solo lo que es propio de cada tripulante (estado extrínseco) y una referencia a su especie, que es compartida.
+    // Se llama así para no chocar con el Tripulante del Prototype.
     public class TripulanteEstacion
     {
         public int Identificador { get; }
@@ -24,7 +21,7 @@ namespace Kepler7.Core.Patrones.Flyweight
 
         public override string ToString()
         {
-            return $"{Nombre} ({Rango}) · {Especie.Nombre} de {Especie.PlanetaOrigen}, dieta {Especie.Dieta}";
+            return Nombre + " (" + Rango + ") · " + Especie.Nombre + " de " + Especie.PlanetaOrigen + ", dieta " + Especie.Dieta;
         }
     }
 }

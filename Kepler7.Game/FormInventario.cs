@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Kepler7.Core.Modelo;
 using Kepler7.Core.Patrones.ChainOfResponsibility;
 using Kepler7.Core.Patrones.State;
@@ -5,10 +6,8 @@ using Kepler7.Core.Patrones.Visitor;
 
 namespace Kepler7.Game
 {
-    /// <summary>
-    /// Ventana del VISITOR (la pantalla de Inventario del Hub): la tabla, el total y los botones
-    /// usan un visitante distinto cada uno, sin preguntar de qué tipo es cada ítem.
-    /// </summary>
+    // Ventana del Visitor: la tabla, el total y los botones usan cada uno un visitante distinto,
+    // sin preguntar de qué tipo es cada ítem.
     public partial class FormInventario : Form
     {
         private readonly Partida _partida;
@@ -55,6 +54,7 @@ namespace Kepler7.Game
             Actualizar();
         }
 
+        // Las filas de la tabla están en el mismo orden que la lista de ítems, por eso alcanza con el índice.
         private ItemInventario? ObtenerItemElegido()
         {
             if (dgvItems.CurrentRow == null)
@@ -67,10 +67,13 @@ namespace Kepler7.Game
         private void Actualizar()
         {
             Inventario inventario = _partida.ObtenerInventario();
+            List<ItemInventario> items = inventario.ObtenerItems();
 
             dgvItems.Rows.Clear();
-            foreach (ItemInventario item in inventario.ObtenerItems())
+            for (int i = 0; i < items.Count; i++)
             {
+                ItemInventario item = items[i];
+
                 VisitanteDescripcion descripcion = new VisitanteDescripcion();
                 item.Aceptar(descripcion);
 
@@ -85,7 +88,7 @@ namespace Kepler7.Game
             lblValorTotal.Text = "Valor total del inventario: " + valorTotal.ObtenerTotal() + " cr";
             lblCreditos.Text = "Créditos: " + _partida.Estacion.Creditos;
 
-            bool hayItems = inventario.ObtenerItems().Count > 0;
+            bool hayItems = items.Count > 0;
             btnEquipar.Enabled = hayItems;
             btnVender.Enabled = hayItems;
 
@@ -95,15 +98,16 @@ namespace Kepler7.Game
         private void ActualizarHeroe()
         {
             Heroe heroe = _partida.ObtenerHeroe();
+            List<Defensa> cadena = heroe.ObtenerCadena().ObtenerDefensas();
 
             string defensas = "";
-            foreach (Defensa defensa in heroe.ObtenerCadena().ObtenerDefensas())
+            for (int i = 0; i < cadena.Count; i++)
             {
                 if (defensas != "")
                 {
                     defensas = defensas + ", ";
                 }
-                defensas = defensas + defensa.ObtenerNombre();
+                defensas = defensas + cadena[i].ObtenerNombre();
             }
 
             lblHeroe.Text = "Daño: " + heroe.Danio + "     Vida: " + heroe.Vida + " / " + heroe.VidaMaxima + "\n" +

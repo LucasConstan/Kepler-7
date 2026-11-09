@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Kepler7.Core.Patrones.State
 {
+    // Con poca vida pega más fuerte. Se le pasa cuando recupera vida.
     public class EstadoEnfurecido : IEstadoHeroe
     {
         public string ObtenerNombre()

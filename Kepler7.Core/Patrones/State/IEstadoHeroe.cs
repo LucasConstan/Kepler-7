@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 
 namespace Kepler7.Core.Patrones.State
 {
+    // Patrón State: cada estado responde estas preguntas a su manera,
+    // así el héroe no necesita un montón de if según cómo esté.
     public interface IEstadoHeroe
     {
         string ObtenerNombre();

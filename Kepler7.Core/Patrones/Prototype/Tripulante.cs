@@ -1,15 +1,10 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using Kepler7.Core.Modelo;
-using Kepler7.Core.Patrones.TemplateMethod;
 
 namespace Kepler7.Core.Patrones.Prototype
 {
-    /// <summary>
-    /// PROTOTYPE - Prototipo abstracto. Un tripulante sabe clonarse a sí mismo:
-    /// copia superficial con MemberwiseClone + copia profunda de la lista de equipamiento.
-    /// </summary>
+    // Un defensor que sabe clonarse a sí mismo, con una copia propia de su equipamiento.
     public abstract class Tripulante : Unidad, IPrototipo<Tripulante>
     {
         private List<Equipo> _equipamiento = new List<Equipo>();
@@ -18,13 +13,39 @@ namespace Kepler7.Core.Patrones.Prototype
         public int DanioBase { get; private set; }
         public int VidaBase { get; private set; }
 
-        /// <summary>Id del tripulante del que se clonó (null si es un original).</summary>
+        // Id del tripulante del que se clonó (null si es un original).
         public int? ClonadoDeId { get; private set; }
 
-        public IReadOnlyList<Equipo> Equipamiento => _equipamiento;
+        public IReadOnlyList<Equipo> Equipamiento
+        {
+            get { return _equipamiento; }
+        }
 
-        public override int Danio => DanioBase + _equipamiento.Sum(e => e.BonusDanio);
-        public override int VidaMaxima => VidaBase + _equipamiento.Sum(e => e.BonusVida);
+        public override int Danio
+        {
+            get
+            {
+                int total = DanioBase;
+                for (int i = 0; i < _equipamiento.Count; i++)
+                {
+                    total = total + _equipamiento[i].BonusDanio;
+                }
+                return total;
+            }
+        }
+
+        public override int VidaMaxima
+        {
+            get
+            {
+                int total = VidaBase;
+                for (int i = 0; i < _equipamiento.Count; i++)
+                {
+                    total = total + _equipamiento[i].BonusVida;
+                }
+                return total;
+            }
+        }
 
         protected Tripulante(string rol, string simbolo, Color color, int danioBase, int vidaBase, int costo)
         {
@@ -41,17 +62,22 @@ namespace Kepler7.Core.Patrones.Prototype
         public void Equipar(Equipo equipo)
         {
             _equipamiento.Add(equipo);
-            Vida += equipo.BonusVida;
+            Vida = Vida + equipo.BonusVida;
         }
 
         public Tripulante Clonar()
         {
             // Copia superficial: copia todos los campos (rol, stats, color...) de una sola vez.
-            var clon = (Tripulante)MemberwiseClone();
+            Tripulante clon = (Tripulante)MemberwiseClone();
 
             // Copia profunda de lo mutable: sin esto, el clon y el original compartirían
             // la MISMA lista y equipar al clon también equiparía al original.
-            clon._equipamiento = _equipamiento.Select(e => e.Clonar()).ToList();
+            List<Equipo> equipoCopiado = new List<Equipo>();
+            for (int i = 0; i < _equipamiento.Count; i++)
+            {
+                equipoCopiado.Add(_equipamiento[i].Clonar());
+            }
+            clon._equipamiento = equipoCopiado;
 
             clon.AsignarNuevoId();
             clon.ClonadoDeId = Id;
@@ -61,50 +87,21 @@ namespace Kepler7.Core.Patrones.Prototype
 
         public override string Descripcion()
         {
-            var equipo = _equipamiento.Count == 0
-                ? "sin equipo"
-                : string.Join(", ", _equipamiento.Select(e => e.Nombre));
-            return $"{Rol} | Daño {Danio} | Vida {Vida}/{VidaMaxima} | Equipo: {equipo}";
-        }
-    }
+            string equipo = "";
+            if (_equipamiento.Count == 0)
+            {
+                equipo = "sin equipo";
+            }
+            else
+            {
+                equipo = _equipamiento[0].Nombre;
+                for (int i = 1; i < _equipamiento.Count; i++)
+                {
+                    equipo = equipo + ", " + _equipamiento[i].Nombre;
+                }
+            }
 
-    public class Soldado : Tripulante
-    {
-        public override TurnoUnidad Turno { get; } = new TurnoSoldado();
-
-        public Soldado() : base("Soldado", "So", Color.FromArgb(70, 130, 220), 12, 100, 50)
-        {
-            Equipar(new Equipo("Rifle estándar", 3, 0, 0));
-        }
-    }
-
-    public class Medico : Tripulante
-    {
-        public override TurnoUnidad Turno { get; } = new TurnoMedico();
-
-        public Medico() : base("Médico", "Me", Color.FromArgb(60, 180, 110), 4, 80, 60)
-        {
-            Equipar(new Equipo("Kit médico", 0, 10, 0));
-        }
-    }
-
-    public class Francotirador : Tripulante
-    {
-        public override TurnoUnidad Turno { get; } = new TurnoFrancotirador();
-
-        public Francotirador() : base("Francotirador", "Fr", Color.FromArgb(150, 100, 220), 25, 60, 75)
-        {
-            Equipar(new Equipo("Mira térmica", 5, 0, 0));
-        }
-    }
-
-    public class Comandante : Tripulante
-    {
-        public override TurnoUnidad Turno { get; } = new TurnoComandante();
-
-        public Comandante() : base("Comandante", "Co", Color.FromArgb(220, 180, 60), 10, 140, 90)
-        {
-            Equipar(new Equipo("Comunicador táctico", 2, 0, 0));
+            return Rol + " | Daño " + Danio + " | Vida " + Vida + "/" + VidaMaxima + " | Equipo: " + equipo;
         }
     }
 }

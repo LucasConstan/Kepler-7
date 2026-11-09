@@ -1,9 +1,8 @@
+using System.Collections.Generic;
+
 namespace Kepler7.Core.Patrones.ChainOfResponsibility
 {
-    /// <summary>
-    /// CHAIN OF RESPONSIBILITY - Arma la cadena y permite cambiar su orden.
-    /// El golpe siempre entra por la primera defensa de la lista.
-    /// </summary>
+    // Arma la cadena de defensas y deja cambiar su orden. El golpe siempre entra por la primera de la lista.
     public class CadenaDefensas
     {
         private List<Defensa> _defensas = new List<Defensa>();
@@ -45,9 +44,9 @@ namespace Kepler7.Core.Patrones.ChainOfResponsibility
 
         public void Recargar()
         {
-            foreach (Defensa defensa in _defensas)
+            for (int i = 0; i < _defensas.Count; i++)
             {
-                defensa.Recargar();
+                _defensas[i].Recargar();
             }
         }
 
@@ -59,7 +58,8 @@ namespace Kepler7.Core.Patrones.ChainOfResponsibility
             Enlazar();
         }
 
-        
+        // Cada vez que cambia la lista hay que volver a decirle a cada defensa cuál es la siguiente.
+        // La última queda sin siguiente, y ahí termina la cadena.
         private void Enlazar()
         {
             for (int i = 0; i < _defensas.Count; i++)

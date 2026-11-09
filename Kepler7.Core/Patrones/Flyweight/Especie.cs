@@ -2,10 +2,8 @@ using System.Drawing;
 
 namespace Kepler7.Core.Patrones.Flyweight
 {
-    /// <summary>
-    /// FLYWEIGHT concreto - Una especie. Solo la crea la FabricaEspecies,
-    /// así que en todo el juego hay un único objeto por especie.
-    /// </summary>
+    // El objeto que se comparte. Lo crea la FabricaEspecies, así que hay uno por especie para todos
+    // los tripulantes. La única excepción son las copias que se hacen para medir la comparación sin Flyweight.
     public class Especie : IEspecie
     {
         // Cuenta cuántos objetos Especie se crearon en total (sirve para demostrar el patrón).
@@ -22,7 +20,7 @@ namespace Kepler7.Core.Patrones.Flyweight
             Color = color;
             PlanetaOrigen = planetaOrigen;
             Dieta = dieta;
-            InstanciasCreadas++;
+            InstanciasCreadas = InstanciasCreadas + 1;
         }
     }
 }

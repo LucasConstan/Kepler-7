@@ -2,10 +2,8 @@ using Kepler7.Core.Modelo;
 
 namespace Kepler7.Core.Patrones.Strategy
 {
-    /// <summary>
-    /// STRATEGY - Interfaz de la estrategia. Cada IA decide a su manera qué hace un enemigo en su turno;
-    /// el enemigo puede cambiar de estrategia en cualquier momento.
-    /// </summary>
+    // Patrón Strategy: cada IA decide a su manera qué hace un enemigo en su turno.
+    // Como el enemigo guarda esta interfaz y no una clase concreta, se le puede cambiar la IA en plena partida.
     public interface IEstrategiaIA
     {
         string Nombre { get; }

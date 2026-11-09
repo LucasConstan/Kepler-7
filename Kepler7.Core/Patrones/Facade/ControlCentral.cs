@@ -3,11 +3,9 @@ using Kepler7.Core.Modelo;
 
 namespace Kepler7.Core.Patrones.Facade
 {
-    /// <summary>
-    /// FACADE - La fachada. El operador solo usa tres operaciones simples y el ControlCentral
-    /// coordina a los seis subsistemas en el orden correcto. Cada método devuelve la secuencia
-    /// de acciones para que la interfaz la muestre (el Core no muestra nada por pantalla).
-    /// </summary>
+    // Patrón Facade: el operador solo ve tres operaciones simples y acá se coordina
+    // a los seis subsistemas en el orden correcto. Cada método devuelve la lista de pasos
+    // para que la interfaz los muestre, porque el Core no escribe nada en pantalla.
     public class ControlCentral
     {
         private readonly Partida _partida;
@@ -30,10 +28,10 @@ namespace Kepler7.Core.Patrones.Facade
             _defensa = new SubsistemaDefensa(partida);
         }
 
-        /// <summary>Prepara todos los subsistemas y arranca la oleada.</summary>
+        // Prepara todos los subsistemas y arranca la oleada.
         public List<string> IniciarTurno()
         {
-            var pasos = new List<string>();
+            List<string> pasos = new List<string>();
             if (_partida.Fase != FasePartida.Preparacion)
             {
                 pasos.Add("Control central: no se puede iniciar un turno ahora.");
@@ -50,19 +48,20 @@ namespace Kepler7.Core.Patrones.Facade
 
             _partida.IniciarOleada();
             EmergenciaDisponible = true;
-            pasos.Add($"Control central: oleada {_partida.NumeroOleada} en curso.");
+            pasos.Add("Control central: oleada " + _partida.NumeroOleada + " en curso.");
             return pasos;
         }
 
-        /// <summary>Busca el subsistema más dañado y coordina a todos para salvarlo.</summary>
+        // Busca el subsistema más dañado y coordina a todos para salvarlo.
         public List<string> EntrarEnEmergencia()
         {
-            var pasos = new List<string>();
+            List<string> pasos = new List<string>();
             if (_partida.Fase != FasePartida.Oleada)
             {
                 pasos.Add("Control central: el modo emergencia solo se usa durante una oleada.");
                 return pasos;
             }
+
             if (!EmergenciaDisponible)
             {
                 pasos.Add("Control central: el modo emergencia ya se usó en esta oleada.");
@@ -72,12 +71,13 @@ namespace Kepler7.Core.Patrones.Facade
             int carril = CarrilMasDaniado();
             if (carril == -1)
             {
+                // No la marca como usada: si todavía no hay daño, se puede pedir más tarde.
                 pasos.Add("Control central: ningún subsistema está dañado, no hace falta la emergencia.");
                 return pasos;
             }
 
             EmergenciaDisponible = false;
-            pasos.Add($"Control central: ¡EMERGENCIA en {Estacion.Subsistemas[carril]}!");
+            pasos.Add("Control central: ¡EMERGENCIA en " + Estacion.Subsistemas[carril] + "!");
             pasos.Add(_comunicaciones.EnviarSOS());
             pasos.Add(_seguridad.AislarSector(carril));
             pasos.Add(_energia.DesviarEnergiaA(carril));
@@ -87,19 +87,18 @@ namespace Kepler7.Core.Patrones.Facade
             return pasos;
         }
 
-        /// <summary>Apaga los subsistemas en orden inverso y termina la partida.</summary>
+        // Apaga los subsistemas en orden inverso al encendido y termina la partida.
         public List<string> ApagarEstacion()
         {
-            var pasos = new List<string>
-            {
-                "Control central: apagando la estación...",
-                _defensa.Apagar(),
-                _seguridad.Apagar(),
-                _comunicaciones.Apagar(),
-                _navegacion.Apagar(),
-                _soporteVital.Apagar(),
-                _energia.Apagar(),
-            };
+            List<string> pasos = new List<string>();
+            pasos.Add("Control central: apagando la estación...");
+            pasos.Add(_defensa.Apagar());
+            pasos.Add(_seguridad.Apagar());
+            pasos.Add(_comunicaciones.Apagar());
+            pasos.Add(_navegacion.Apagar());
+            pasos.Add(_soporteVital.Apagar());
+            pasos.Add(_energia.Apagar());
+
             _partida.Apagar();
             EmergenciaDisponible = false;
             return pasos;
@@ -112,9 +111,15 @@ namespace Kepler7.Core.Patrones.Facade
             for (int carril = 0; carril < Grilla.Carriles; carril++)
             {
                 int integridad = _partida.IntegridadDelCarril(carril);
-                if (integridad == 0 || integridad == Partida.IntegridadMaxima) continue;
-                if (peor == -1 || integridad < _partida.IntegridadDelCarril(peor)) peor = carril;
+                if (integridad != 0 && integridad != Partida.IntegridadMaxima)
+                {
+                    if (peor == -1 || integridad < _partida.IntegridadDelCarril(peor))
+                    {
+                        peor = carril;
+                    }
+                }
             }
+
             return peor;
         }
     }

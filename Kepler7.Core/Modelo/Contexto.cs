@@ -1,11 +1,10 @@
+using System;
 using Kepler7.Core.Patrones.TemplateMethod;
 
 namespace Kepler7.Core.Modelo
 {
-    /// <summary>
-    /// Lo que reciben los turnos y las estrategias de IA para ver el estado del juego
-    /// y ejecutar acciones, sin conocer a la Partida completa.
-    /// </summary>
+    // Es lo que reciben los turnos y las estrategias de IA para ver el estado del juego
+    // y ejecutar acciones, sin tener acceso a la Partida completa.
     public class Contexto
     {
         private readonly Partida _partida;
@@ -15,9 +14,20 @@ namespace Kepler7.Core.Modelo
             _partida = partida;
         }
 
-        public int Tick => _partida.Tick;
-        public Grilla Grilla => _partida.Grilla;
-        public Random Azar => _partida.Azar;
+        public int Tick
+        {
+            get { return _partida.Tick; }
+        }
+
+        public Grilla Grilla
+        {
+            get { return _partida.Grilla; }
+        }
+
+        public Random Azar
+        {
+            get { return _partida.Azar; }
+        }
 
         public void Registrar(Unidad unidad, EtapaTurno etapa, string texto)
         {
@@ -27,7 +37,11 @@ namespace Kepler7.Core.Modelo
         public int AplicarDanio(Unidad objetivo, int cantidad)
         {
             int real = objetivo.RecibirDanio(cantidad);
-            if (!objetivo.EstaViva) _partida.Matar(objetivo);
+            if (!objetivo.EstaViva)
+            {
+                _partida.Matar(objetivo);
+            }
+
             return real;
         }
 
@@ -46,18 +60,10 @@ namespace Kepler7.Core.Modelo
                     return Atacar(actor, accion.Objetivo);
 
                 case TipoAccion.Avanzar:
-                    if (actor is not Enemigo enemigo) return "no puede avanzar";
-                    if (enemigo.Columna == 0)
-                    {
-                        _partida.GolpearNucleo(enemigo);
-                        return "llega al núcleo y lo golpea";
-                    }
-                    return Mover(actor, actor.Carril, actor.Columna - 1) ? "avanza una casilla" : "no puede avanzar";
+                    return Avanzar(actor);
 
                 case TipoAccion.CambiarCarril:
-                    return Mover(actor, accion.Carril, actor.Columna)
-                        ? "cambia al carril de " + Estacion.Subsistemas[accion.Carril]
-                        : "no puede cambiar de carril";
+                    return CambiarCarril(actor, accion.Carril);
 
                 case TipoAccion.Esperar:
                     return "espera";
@@ -67,13 +73,56 @@ namespace Kepler7.Core.Modelo
             }
         }
 
+        private string Avanzar(Unidad actor)
+        {
+            if (!(actor is Enemigo))
+            {
+                return "no puede avanzar";
+            }
+
+            // Desde la columna 0 ya no hay a dónde moverse: lo que sigue es el núcleo.
+            Enemigo enemigo = (Enemigo)actor;
+            if (enemigo.Columna == 0)
+            {
+                _partida.GolpearNucleo(enemigo);
+                return "llega al núcleo y lo golpea";
+            }
+
+            if (Mover(actor, actor.Carril, actor.Columna - 1))
+            {
+                return "avanza una casilla";
+            }
+
+            return "no puede avanzar";
+        }
+
+        private string CambiarCarril(Unidad actor, int carril)
+        {
+            if (Mover(actor, carril, actor.Columna))
+            {
+                return "cambia al carril de " + Estacion.Subsistemas[carril];
+            }
+
+            return "no puede cambiar de carril";
+        }
+
         private string Atacar(Unidad atacante, Unidad? objetivo)
         {
-            if (objetivo == null || !objetivo.EstaViva) return "no hay a quién atacar";
+            // El objetivo se eligió al decidir, pero pudo haber muerto antes de que llegue este momento.
+            if (objetivo == null || !objetivo.EstaViva)
+            {
+                return "no hay a quién atacar";
+            }
 
             int real = AplicarDanio(objetivo, atacante.DanioTotal);
-            string texto = $"ataca a {objetivo.NombreCompleto}: -{real} PV";
-            return objetivo.EstaViva ? texto + $" (le quedan {objetivo.Vida})" : texto + " (derrotado)";
+            string texto = "ataca a " + objetivo.NombreCompleto + ": -" + real + " PV";
+
+            if (objetivo.EstaViva)
+            {
+                return texto + " (le quedan " + objetivo.Vida + ")";
+            }
+
+            return texto + " (derrotado)";
         }
 
         private bool Mover(Unidad unidad, int carril, int columna)

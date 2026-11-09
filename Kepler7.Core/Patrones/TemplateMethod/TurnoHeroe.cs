@@ -8,6 +8,7 @@ using Kepler7.Core.Patrones.State;
 
 namespace Kepler7.Core.Patrones.TemplateMethod
 {
+    // Ataca igual que el soldado. Lo distinto es que al empezar el turno su estado puede cambiar.
     public class TurnoHeroe : TurnoUnidad
     {
         protected override string Inicio(Unidad unidad, Contexto contexto)

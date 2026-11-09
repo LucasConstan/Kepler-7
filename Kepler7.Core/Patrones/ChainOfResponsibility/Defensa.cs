@@ -1,7 +1,7 @@
 namespace Kepler7.Core.Patrones.ChainOfResponsibility
 {
-    /// CHAIN OF RESPONSIBILITY - Manejador. Cada defensa conoce solo a la siguiente:
-    /// aplica su regla y, si todavía queda daño, le pasa el golpe.
+    // Patrón Chain of Responsibility: cada defensa conoce solo a la siguiente.
+    // Aplica su regla y, si todavía queda daño, le pasa el golpe.
     public abstract class Defensa
     {
         private Defensa? _siguiente;

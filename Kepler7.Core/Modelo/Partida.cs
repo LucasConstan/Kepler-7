@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using Kepler7.Core.Patrones.Builder;
 using Kepler7.Core.Patrones.Flyweight;
 using Kepler7.Core.Patrones.Strategy;
@@ -10,18 +10,8 @@ using Kepler7.Core.Patrones.Visitor;
 
 namespace Kepler7.Core.Modelo
 {
-    public enum FasePartida
-    {
-        Preparacion,   // el jugador arma y despliega sus defensas
-        Oleada,        // los ticks avanzan y los enemigos atacan
-        Victoria,
-        Derrota
-    }
-
-    /// <summary>
-    /// Una partida completa: tablero, economía, oleadas y el bucle de ticks.
-    /// No sabe nada de formularios: la interfaz solo llama a AvanzarTick() desde un Timer.
-    /// </summary>
+    // Una partida completa: tablero, economía, oleadas y el bucle de ticks.
+    // No sabe nada de formularios: la interfaz solo llama a AvanzarTick() desde un Timer.
     public class Partida
     {
         public const int IntegridadMaxima = 100;
@@ -56,10 +46,19 @@ namespace Kepler7.Core.Modelo
         // Mensajes importantes de la partida (inicio de oleada, bajas, golpes al núcleo...).
         public event Action<string>? Mensaje;
 
+        // La semilla es opcional: con la misma semilla el azar da siempre los mismos resultados.
         public Partida(int creditosIniciales, int? semilla = null)
         {
             Estacion = new Estacion(creditosIniciales);
-            Azar = semilla.HasValue ? new Random(semilla.Value) : new Random();
+            if (semilla.HasValue)
+            {
+                Azar = new Random(semilla.Value);
+            }
+            else
+            {
+                Azar = new Random();
+            }
+
             _oleadas = Campania.CrearOleadas();
             _contexto = new Contexto(this);
             _heroe = new Heroe();
@@ -70,12 +69,26 @@ namespace Kepler7.Core.Modelo
             _inventario.Agregar(new ItemModuloDefensa("Módulo de evasión", new DefensaEvasion(Azar)));
             _inventario.Agregar(new ItemModuloDefensa("Módulo de escudo", new DefensaEscudo()));
 
-            for (int i = 0; i < _integridad.Length; i++) _integridad[i] = IntegridadMaxima;
+            for (int i = 0; i < _integridad.Length; i++)
+            {
+                _integridad[i] = IntegridadMaxima;
+            }
         }
 
-        public Oleada OleadaActual => _oleadas[_indiceOleada];
-        public int NumeroOleada => _indiceOleada + 1;
-        public int TotalOleadas => _oleadas.Count;
+        public Oleada OleadaActual
+        {
+            get { return _oleadas[_indiceOleada]; }
+        }
+
+        public int NumeroOleada
+        {
+            get { return _indiceOleada + 1; }
+        }
+
+        public int TotalOleadas
+        {
+            get { return _oleadas.Count; }
+        }
 
         public Inventario ObtenerInventario()
         {
@@ -115,21 +128,64 @@ namespace Kepler7.Core.Modelo
             return _heroe;
         }
 
-        public int IntegridadDelCarril(int carril) => _integridad[carril];
+        public int IntegridadDelCarril(int carril)
+        {
+            return _integridad[carril];
+        }
 
-        public int CarrilesCaidos => _integridad.Count(i => i == 0);
+        public int CarrilesCaidos
+        {
+            get
+            {
+                int caidos = 0;
+                for (int i = 0; i < _integridad.Length; i++)
+                {
+                    if (_integridad[i] == 0)
+                    {
+                        caidos = caidos + 1;
+                    }
+                }
+                return caidos;
+            }
+        }
 
         // Créditos extra por oleada que dan las naves de carga desplegadas.
-        public int BonusRecursosPorOleada =>
-            Grilla.Defensores().OfType<NaveApoyo>().Sum(n => n.BonusRecursos);
+        public int BonusRecursosPorOleada
+        {
+            get
+            {
+                int total = 0;
+                List<Unidad> defensores = Grilla.Defensores();
+                for (int i = 0; i < defensores.Count; i++)
+                {
+                    if (defensores[i] is NaveApoyo)
+                    {
+                        NaveApoyo nave = (NaveApoyo)defensores[i];
+                        total = total + nave.BonusRecursos;
+                    }
+                }
+                return total;
+            }
+        }
 
         // --- Preparación ---
 
         public bool Desplegar(Unidad unidad, int carril, int columna)
         {
-            if (Fase != FasePartida.Preparacion) return false;
-            if (!Estacion.Reserva.Contains(unidad) || !Grilla.EsZonaDefensa(columna)) return false;
-            if (!Grilla.Colocar(unidad, carril, columna)) return false;
+            if (Fase != FasePartida.Preparacion)
+            {
+                return false;
+            }
+
+            if (!Estacion.Reserva.Contains(unidad) || !Grilla.EsZonaDefensa(columna))
+            {
+                return false;
+            }
+
+            if (!Grilla.Colocar(unidad, carril, columna))
+            {
+                return false;
+            }
 
             Estacion.QuitarDeReserva(unidad);
             return true;
@@ -137,13 +193,16 @@ namespace Kepler7.Core.Modelo
 
         public bool IniciarOleada()
         {
-            if (Fase != FasePartida.Preparacion) return false;
+            if (Fase != FasePartida.Preparacion)
+            {
+                return false;
+            }
 
             _tickOleada = 0;
             _porAparecer.Clear();
             _porAparecer.AddRange(OleadaActual.Spawns);
             Fase = FasePartida.Oleada;
-            Avisar($"Oleada {NumeroOleada}/{TotalOleadas}: {OleadaActual.Nombre} (IA {OleadaActual.Estrategia.Nombre})");
+            Avisar("Oleada " + NumeroOleada + "/" + TotalOleadas + ": " + OleadaActual.Nombre + " (IA " + OleadaActual.Estrategia.Nombre + ")");
             Avisar(OleadaActual.Historia);
             return true;
         }
@@ -152,46 +211,105 @@ namespace Kepler7.Core.Modelo
 
         public void AvanzarTick()
         {
-            if (Fase != FasePartida.Oleada) return;
+            if (Fase != FasePartida.Oleada)
+            {
+                return;
+            }
 
-            Tick++;
-            _tickOleada++;
+            Tick = Tick + 1;
+            _tickOleada = _tickOleada + 1;
 
             HacerAparecerEnemigos();
 
             // 1) Juegan los defensores (el Comandante primero, así su bonus llega a los demás).
-            var defensores = Grilla.Defensores().OrderBy(d => d.Turno.Prioridad).ToList();
-            foreach (var defensor in defensores)
+            List<Unidad> defensores = Grilla.Defensores();
+            OrdenarPorPrioridad(defensores);
+            for (int i = 0; i < defensores.Count; i++)
             {
-                if (defensor.EstaViva) defensor.Turno.EjecutarTurno(defensor, _contexto);
+                if (defensores[i].EstaViva)
+                {
+                    defensores[i].Turno.EjecutarTurno(defensores[i], _contexto);
+                }
             }
 
             // 2) Juegan los enemigos, empezando por los que están más cerca del núcleo.
-            var enemigos = Grilla.Enemigos().OrderBy(e => e.Columna).ToList();
-            foreach (var enemigo in enemigos)
+            List<Enemigo> enemigos = Grilla.Enemigos();
+            OrdenarPorColumna(enemigos);
+            for (int i = 0; i < enemigos.Count; i++)
             {
-                if (Fase != FasePartida.Oleada) break;
-                if (enemigo.EstaViva && enemigo.Columna >= 0) enemigo.Turno.EjecutarTurno(enemigo, _contexto);
+                // Un enemigo pudo haber terminado la partida al golpear un núcleo.
+                if (Fase != FasePartida.Oleada)
+                {
+                    break;
+                }
+
+                if (enemigos[i].EstaViva && enemigos[i].Columna >= 0)
+                {
+                    enemigos[i].Turno.EjecutarTurno(enemigos[i], _contexto);
+                }
             }
 
             // 3) Fin del tick: los bonus temporales se terminan.
-            foreach (var unidad in Grilla.Unidades()) unidad.BonusDanio = 0;
+            List<Unidad> unidades = Grilla.Unidades();
+            for (int i = 0; i < unidades.Count; i++)
+            {
+                unidades[i].BonusDanio = 0;
+            }
 
             if (Fase == FasePartida.Oleada && _porAparecer.Count == 0 && Grilla.Enemigos().Count == 0)
+            {
                 TerminarOleada();
+            }
+        }
+
+        // Ordenamiento por inserción. Con igual prioridad se respeta el orden que ya tenían,
+        // y eso importa: define quién juega primero. List.Sort no lo garantiza.
+        private static void OrdenarPorPrioridad(List<Unidad> lista)
+        {
+            for (int i = 1; i < lista.Count; i++)
+            {
+                Unidad actual = lista[i];
+                int j = i - 1;
+                while (j >= 0 && lista[j].Turno.Prioridad > actual.Turno.Prioridad)
+                {
+                    lista[j + 1] = lista[j];
+                    j = j - 1;
+                }
+                lista[j + 1] = actual;
+            }
+        }
+
+        // Lo mismo que OrdenarPorPrioridad, pero para los enemigos según su columna.
+        private static void OrdenarPorColumna(List<Enemigo> lista)
+        {
+            for (int i = 1; i < lista.Count; i++)
+            {
+                Enemigo actual = lista[i];
+                int j = i - 1;
+                while (j >= 0 && lista[j].Columna > actual.Columna)
+                {
+                    lista[j + 1] = lista[j];
+                    j = j - 1;
+                }
+                lista[j + 1] = actual;
+            }
         }
 
         private void HacerAparecerEnemigos()
         {
-            foreach (var spawn in _porAparecer.ToList())
+            // Se recorre una copia porque de la lista original se van sacando los que ya aparecieron.
+            List<SpawnEnemigo> pendientes = new List<SpawnEnemigo>(_porAparecer);
+            for (int i = 0; i < pendientes.Count; i++)
             {
-                if (spawn.Tick > _tickOleada) continue;
-                // Si la celda de entrada está ocupada, lo intenta de nuevo en el próximo tick.
-                if (!Grilla.EstaLibre(spawn.Carril, Grilla.Columnas - 1)) continue;
+                SpawnEnemigo spawn = pendientes[i];
 
-                var enemigo = Enemigo.Crear(spawn.Tipo, OleadaActual.Estrategia);
-                Grilla.Colocar(enemigo, spawn.Carril, Grilla.Columnas - 1);
-                _porAparecer.Remove(spawn);
+                // Si la celda de entrada está ocupada, lo intenta de nuevo en el próximo tick.
+                if (spawn.Tick <= _tickOleada && Grilla.EstaLibre(spawn.Carril, Grilla.Columnas - 1))
+                {
+                    Enemigo enemigo = Enemigo.Crear(spawn.Tipo, OleadaActual.Estrategia);
+                    Grilla.Colocar(enemigo, spawn.Carril, Grilla.Columnas - 1);
+                    _porAparecer.Remove(spawn);
+                }
             }
         }
 
@@ -199,8 +317,14 @@ namespace Kepler7.Core.Modelo
         {
             int premio = OleadaActual.Recompensa + BonusRecursosPorOleada;
             Estacion.Ganar(premio);
-            foreach (var defensor in Grilla.Defensores()) defensor.Vida = defensor.VidaMaxima;
-            Avisar($"Oleada {NumeroOleada} superada: +{premio} créditos y las unidades se reparan.");
+
+            List<Unidad> defensores = Grilla.Defensores();
+            for (int i = 0; i < defensores.Count; i++)
+            {
+                defensores[i].Vida = defensores[i].VidaMaxima;
+            }
+
+            Avisar("Oleada " + NumeroOleada + " superada: +" + premio + " créditos y las unidades se reparan.");
 
             // STATE: el héroe vuelve a Normal. Si cayó, ya no está en el tablero y regresa a la reserva.
             bool heroeCaido = !_heroe.EstaViva;
@@ -208,7 +332,7 @@ namespace Kepler7.Core.Modelo
             if (heroeCaido)
             {
                 Estacion.AgregarAReserva(_heroe);
-                Avisar($"{_heroe.NombreCompleto} se recuperó y volvió a la reserva.");
+                Avisar(_heroe.NombreCompleto + " se recuperó y volvió a la reserva.");
             }
 
             if (_indiceOleada == _oleadas.Count - 1)
@@ -219,7 +343,7 @@ namespace Kepler7.Core.Modelo
             else
             {
                 EntregarPremio();
-                _indiceOleada++;
+                _indiceOleada = _indiceOleada + 1;
                 Fase = FasePartida.Preparacion;
             }
         }
@@ -229,15 +353,16 @@ namespace Kepler7.Core.Modelo
         internal void Matar(Unidad unidad)
         {
             Grilla.Quitar(unidad);
-            if (unidad is Enemigo enemigo)
+            if (unidad is Enemigo)
             {
+                Enemigo enemigo = (Enemigo)unidad;
                 Estacion.Ganar(enemigo.Recompensa);
-                EnemigosDerrotados++;
-                Avisar($"{enemigo.NombreCompleto} derrotado (+{enemigo.Recompensa} créditos)");
+                EnemigosDerrotados = EnemigosDerrotados + 1;
+                Avisar(enemigo.NombreCompleto + " derrotado (+" + enemigo.Recompensa + " créditos)");
             }
             else
             {
-                Avisar($"{unidad.NombreCompleto} fue destruido");
+                Avisar(unidad.NombreCompleto + " fue destruido");
             }
         }
 
@@ -250,10 +375,13 @@ namespace Kepler7.Core.Modelo
             {
                 int muertos = Tripulacion.Eliminar(carril, enemigo.Danio * 2 * TripulantesPorPuntoDeDanio);
                 Grilla.Quitar(enemigo);
-                Avisar($"¡{enemigo.NombreCompleto} atacó {Estacion.Subsistemas[carril]}! Murieron {muertos} tripulantes " +
-                       $"(quedan {Tripulacion.TripulantesEn(carril)}).");
+                Avisar("¡" + enemigo.NombreCompleto + " atacó " + Estacion.Subsistemas[carril] + "! Murieron " + muertos + " tripulantes "
+                    + "(quedan " + Tripulacion.TripulantesEn(carril) + ").");
+
                 if (Tripulacion.TripulantesEn(carril) == 0)
-                    Avisar($"¡{Estacion.Subsistemas[carril]} se quedó sin tripulación: el núcleo está expuesto!");
+                {
+                    Avisar("¡" + Estacion.Subsistemas[carril] + " se quedó sin tripulación: el núcleo está expuesto!");
+                }
                 return;
             }
 
@@ -261,15 +389,18 @@ namespace Kepler7.Core.Modelo
             _integridad[carril] = Math.Max(0, antes - enemigo.Danio * 2);
             Grilla.Quitar(enemigo);
 
-            Avisar($"¡{enemigo.NombreCompleto} golpeó el núcleo de {Estacion.Subsistemas[carril]}! " +
-                   $"Integridad {_integridad[carril]}/{IntegridadMaxima}");
+            Avisar("¡" + enemigo.NombreCompleto + " golpeó el núcleo de " + Estacion.Subsistemas[carril] + "! "
+                + "Integridad " + _integridad[carril] + "/" + IntegridadMaxima);
+
             if (antes > 0 && _integridad[carril] == 0)
-                Avisar($"¡El subsistema {Estacion.Subsistemas[carril]} cayó!");
+            {
+                Avisar("¡El subsistema " + Estacion.Subsistemas[carril] + " cayó!");
+            }
 
             if (CarrilesCaidos >= CarrilesCaidosParaPerder)
             {
                 Fase = FasePartida.Derrota;
-                Avisar($"DERROTA: cayeron {CarrilesCaidos} subsistemas. Kepler-7 se perdió.");
+                Avisar("DERROTA: cayeron " + CarrilesCaidos + " subsistemas. Kepler-7 se perdió.");
             }
         }
 
@@ -279,7 +410,11 @@ namespace Kepler7.Core.Modelo
         public int RepararNucleo(int carril, int cantidad)
         {
             int antes = _integridad[carril];
-            if (antes == 0) return 0;
+            if (antes == 0)
+            {
+                return 0;
+            }
+
             _integridad[carril] = Math.Min(IntegridadMaxima, antes + cantidad);
             return _integridad[carril] - antes;
         }
@@ -294,19 +429,30 @@ namespace Kepler7.Core.Modelo
         // Un subsistema caído ya no se puede reforzar.
         public bool EnviarTripulantes(int carril)
         {
-            if (Fase == FasePartida.Victoria || Fase == FasePartida.Derrota) return false;
-            if (_integridad[carril] == 0 || !Estacion.Gastar(CostoEnvioTripulantes)) return false;
+            if (Fase == FasePartida.Victoria || Fase == FasePartida.Derrota)
+            {
+                return false;
+            }
+
+            if (_integridad[carril] == 0 || !Estacion.Gastar(CostoEnvioTripulantes))
+            {
+                return false;
+            }
 
             Tripulacion.Agregar(carril, TripulantesPorEnvio);
-            Avisar($"{TripulantesPorEnvio} tripulantes llegan a {Estacion.Subsistemas[carril]} " +
-                   $"(ahora hay {Tripulacion.TripulantesEn(carril)}, -{CostoEnvioTripulantes} cr).");
+            Avisar(TripulantesPorEnvio + " tripulantes llegan a " + Estacion.Subsistemas[carril] + " "
+                + "(ahora hay " + Tripulacion.TripulantesEn(carril) + ", -" + CostoEnvioTripulantes + " cr).");
             return true;
         }
 
         // Termina la partida porque el operador apagó la estación (lo usa el ControlCentral).
         public void Apagar()
         {
-            if (Fase == FasePartida.Victoria || Fase == FasePartida.Derrota) return;
+            if (Fase == FasePartida.Victoria || Fase == FasePartida.Derrota)
+            {
+                return;
+            }
+
             Fase = FasePartida.Derrota;
             Avisar("La estación fue apagada por el operador. Fin de la partida.");
         }
@@ -315,21 +461,29 @@ namespace Kepler7.Core.Modelo
 
         public void CambiarEstrategia(Enemigo enemigo, IEstrategiaIA nueva)
         {
-            Avisar($"{enemigo.NombreCompleto}: IA {enemigo.Estrategia.Nombre} → {nueva.Nombre}");
+            Avisar(enemigo.NombreCompleto + ": IA " + enemigo.Estrategia.Nombre + " → " + nueva.Nombre);
             enemigo.Estrategia = nueva;
         }
 
         // Cambia la IA de todos los enemigos que están en el tablero y de los que todavía no aparecieron.
         public void CambiarEstrategiaATodos(IEstrategiaIA nueva)
         {
-            Avisar($"Todos los enemigos pasan a IA {nueva.Nombre}");
+            Avisar("Todos los enemigos pasan a IA " + nueva.Nombre);
             OleadaActual.Estrategia = nueva;
-            foreach (var enemigo in Grilla.Enemigos()) enemigo.Estrategia = nueva;
+
+            List<Enemigo> enemigos = Grilla.Enemigos();
+            for (int i = 0; i < enemigos.Count; i++)
+            {
+                enemigos[i].Estrategia = nueva;
+            }
         }
 
         private void Avisar(string texto)
         {
-            Mensaje?.Invoke(texto);
+            if (Mensaje != null)
+            {
+                Mensaje(texto);
+            }
         }
     }
 }

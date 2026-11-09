@@ -4,17 +4,8 @@ using Kepler7.Core.Patrones.TemplateMethod;
 
 namespace Kepler7.Core.Modelo
 {
-    public enum TipoEnemigo
-    {
-        Pirata,
-        Dron,
-        Criatura
-    }
-
-    /// <summary>
-    /// Unidad enemiga. Cómo decide qué hacer depende de su estrategia de IA (patrón Strategy),
-    /// que se puede cambiar en cualquier momento de la partida.
-    /// </summary>
+    // Unidad enemiga. Cómo decide qué hacer depende de su estrategia de IA,
+    // que se puede cambiar en cualquier momento de la partida.
     public class Enemigo : Unidad
     {
         private readonly int _danio;
@@ -28,9 +19,21 @@ namespace Kepler7.Core.Modelo
         // STRATEGY: el enemigo no sabe cómo decide, solo le pregunta a su estrategia.
         public IEstrategiaIA Estrategia { get; set; }
 
-        public override bool EsEnemigo => true;
-        public override int Danio => _danio;
-        public override int VidaMaxima => _vidaMaxima;
+        public override bool EsEnemigo
+        {
+            get { return true; }
+        }
+
+        public override int Danio
+        {
+            get { return _danio; }
+        }
+
+        public override int VidaMaxima
+        {
+            get { return _vidaMaxima; }
+        }
+
         public override TurnoUnidad Turno { get; } = new TurnoEnemigo();
 
         private Enemigo(TipoEnemigo tipo, string nombre, string simbolo, Color color, int danio, int vida,
@@ -62,11 +65,15 @@ namespace Kepler7.Core.Modelo
             }
         }
 
-        public bool PuedeAvanzarEnTick(int tick) => tick % TicksPorCasilla == 0;
+        public bool PuedeAvanzarEnTick(int tick)
+        {
+            return tick % TicksPorCasilla == 0;
+        }
 
         public override string Descripcion()
         {
-            return $"{Nombre} | Daño {Danio} | Vida {Vida}/{VidaMaxima} | Alcance {Alcance} | IA: {Estrategia.Nombre}";
+            return Nombre + " | Daño " + Danio + " | Vida " + Vida + "/" + VidaMaxima
+                + " | Alcance " + Alcance + " | IA: " + Estrategia.Nombre;
         }
     }
 }

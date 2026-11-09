@@ -1,9 +1,7 @@
 namespace Kepler7.Core.Patrones.ChainOfResponsibility
 {
-    /// <summary>
-    /// CHAIN OF RESPONSIBILITY - Pedido. Es lo que viaja por la cadena: el daño que queda
-    /// y los pasos del recorrido, que después se muestran en pantalla.
-    /// </summary>
+    // Es lo que viaja por la cadena: el daño que queda y los pasos del recorrido,
+    // que después se muestran en pantalla.
     public class Golpe
     {
         private int _danioRestante;

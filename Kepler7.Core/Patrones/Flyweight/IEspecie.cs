@@ -2,10 +2,8 @@ using System.Drawing;
 
 namespace Kepler7.Core.Patrones.Flyweight
 {
-    /// <summary>
-    /// FLYWEIGHT - Interfaz del flyweight. Es el estado INTRÍNSECO: los datos que son
-    /// iguales para todos los tripulantes de una misma especie y por eso se comparten.
-    /// </summary>
+    // Patrón Flyweight: esto es el estado intrínseco, los datos que son iguales
+    // para todos los tripulantes de una misma especie y por eso se pueden compartir.
     public interface IEspecie
     {
         string Nombre { get; }

@@ -1,14 +1,11 @@
-﻿using System.Drawing;
+using System.Drawing;
 
 namespace Kepler7.Core.Patrones.Builder
 {
-    /// <summary>
-    /// Base común de los builders concretos: maneja la nave en construcción
-    /// y la entrega terminada (con la vida al máximo).
-    /// </summary>
+    // Lo que tienen en común todas las recetas: crear la nave y entregarla terminada.
     public abstract class NaveApoyoBuilderBase : INaveApoyoBuilder
     {
-        // Se crea en Reiniciar(); el director siempre lo llama antes que cualquier otro paso.
+        // Se crea en Reiniciar(); el Astillero siempre lo llama antes que cualquier otro paso.
         protected NaveApoyo Nave { get; private set; } = null!;
 
         public abstract string NombreReceta { get; }
@@ -19,7 +16,8 @@ namespace Kepler7.Core.Patrones.Builder
 
         public void Reiniciar()
         {
-            Nave = new NaveApoyo { Tipo = NombreReceta };
+            Nave = new NaveApoyo();
+            Nave.Tipo = NombreReceta;
             Nave.Identificar("Nave " + NombreReceta, Simbolo, Color, Costo);
         }
 
@@ -30,12 +28,18 @@ namespace Kepler7.Core.Patrones.Builder
 
         public NaveApoyo ObtenerResultado()
         {
-            var terminada = Nave;
+            // La vida se llena recién acá porque el blindaje final se conoce al terminar todos los pasos.
+            NaveApoyo terminada = Nave;
             terminada.Vida = terminada.VidaMaxima;
+
+            // Se suelta la referencia para que la próxima nave no reutilice esta por error.
             Nave = null!;
             return terminada;
         }
 
-        public override string ToString() => NombreReceta;
+        public override string ToString()
+        {
+            return NombreReceta;
+        }
     }
 }

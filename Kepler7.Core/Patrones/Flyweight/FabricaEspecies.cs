@@ -3,26 +3,30 @@ using System.Drawing;
 
 namespace Kepler7.Core.Patrones.Flyweight
 {
-    /// <summary>
-    /// FLYWEIGHT - Fábrica. Guarda las especies en un diccionario: si la especie ya existe
-    /// la devuelve, y si no existe la crea una sola vez. Así nunca hay dos objetos de la misma especie.
-    /// </summary>
+    // Si la especie ya existe la devuelve, y si no la crea una sola vez.
+    // Gracias a esto nunca hay dos objetos de la misma especie dentro de una fábrica.
     public class FabricaEspecies
     {
         public static readonly string[] NombresEspecies = { "Humano", "Zorgon", "Kryll", "Androide", "Lumino" };
 
         private readonly Dictionary<string, IEspecie> _especies = new Dictionary<string, IEspecie>();
 
-        public int CantidadEspecies => _especies.Count;
+        public int CantidadEspecies
+        {
+            get { return _especies.Count; }
+        }
 
         public IEspecie ObtenerEspecie(string nombre)
         {
             if (!_especies.ContainsKey(nombre))
+            {
                 _especies[nombre] = CrearEspecie(nombre);
+            }
+
             return _especies[nombre];
         }
 
-        // Los datos de cada especie (estado intrínseco).
+        // Los datos de cada especie (estado intrínseco). Cualquier nombre desconocido termina siendo Humano.
         private static IEspecie CrearEspecie(string nombre)
         {
             switch (nombre)

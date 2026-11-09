@@ -2,21 +2,22 @@ using Kepler7.Core.Modelo;
 
 namespace Kepler7.Core.Patrones.TemplateMethod
 {
-    /// <summary>
-    /// TEMPLATE METHOD - Clase abstracta. EjecutarTurno() define el orden fijo del turno
-    /// (inicio, decisión, acción, fin) y NO se puede redefinir. Las subclases solo cambian
-    /// los pasos variables: cada rol decide y actúa a su manera.
-    /// </summary>
+    // Patrón Template Method: EjecutarTurno fija el orden del turno (inicio, decisión, acción, fin)
+    // y cada rol solo cambia los pasos que hace distinto.
     public abstract class TurnoUnidad
     {
         // Las unidades con número menor juegan primero dentro de un tick.
-        public virtual int Prioridad => 1;
+        public virtual int Prioridad
+        {
+            get { return 1; }
+        }
 
         // El método plantilla: no es virtual, así el orden nunca cambia.
         public void EjecutarTurno(Unidad unidad, Contexto contexto)
         {
             contexto.Registrar(unidad, EtapaTurno.Inicio, Inicio(unidad, contexto));
 
+            // Esto va después de Inicio a propósito: ahí un héroe aturdido puede recuperarse y jugar este mismo turno.
             if (!unidad.PuedeActuar)
             {
                 contexto.Registrar(unidad, EtapaTurno.Fin, "no puede actuar, pierde el turno");
@@ -35,7 +36,7 @@ namespace Kepler7.Core.Patrones.TemplateMethod
         // Pasos con comportamiento por defecto (las subclases pueden cambiarlos).
         protected virtual string Inicio(Unidad unidad, Contexto contexto)
         {
-            return $"empieza su turno ({unidad.Vida}/{unidad.VidaMaxima} PV)";
+            return "empieza su turno (" + unidad.Vida + "/" + unidad.VidaMaxima + " PV)";
         }
 
         protected virtual string Actuar(Unidad unidad, Accion accion, Contexto contexto)

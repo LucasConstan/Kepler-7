@@ -1,11 +1,10 @@
+using System;
 using System.Drawing;
 using Kepler7.Core.Patrones.TemplateMethod;
 
 namespace Kepler7.Core.Modelo
 {
-    /// <summary>
-    /// Cualquier cosa que ocupa una celda del tablero: tripulantes, naves de apoyo y enemigos.
-    /// </summary>
+    // Cualquier cosa que ocupa una celda del tablero: tripulantes, naves de apoyo y enemigos.
     public abstract class Unidad
     {
         private static int _siguienteId = 1;
@@ -30,27 +29,46 @@ namespace Kepler7.Core.Modelo
         // TEMPLATE METHOD: cada tipo de unidad trae su propio turno.
         public abstract TurnoUnidad Turno { get; }
 
-        public virtual bool EsEnemigo => false;
-        public bool EstaViva => Vida > 0;
-        public int DanioTotal => Danio + BonusDanio;
-        public string NombreCompleto => Nombre + " #" + Id;
+        public virtual bool EsEnemigo
+        {
+            get { return false; }
+        }
+
+        public bool EstaViva
+        {
+            get { return Vida > 0; }
+        }
+
+        public int DanioTotal
+        {
+            get { return Danio + BonusDanio; }
+        }
+
+        public string NombreCompleto
+        {
+            get { return Nombre + " #" + Id; }
+        }
 
         // Enganche para el patrón State: un personaje aturdido no puede actuar.
-        public virtual bool PuedeActuar => EstaViva;
+        public virtual bool PuedeActuar
+        {
+            get { return EstaViva; }
+        }
 
         // Enganche para Chain of Responsibility: acá el daño pasaría por la cadena de defensas.
         // Devuelve el daño que realmente se recibió.
         public virtual int RecibirDanio(int cantidad)
         {
             int real = Math.Min(Math.Max(cantidad, 0), Vida);
-            Vida -= real;
+            Vida = Vida - real;
             return real;
         }
 
+        // Igual que con el daño, devuelve lo que realmente se curó: nunca se pasa de la vida máxima.
         public int Curar(int cantidad)
         {
             int real = Math.Min(Math.Max(cantidad, 0), VidaMaxima - Vida);
-            Vida += real;
+            Vida = Vida + real;
             return real;
         }
 
@@ -61,11 +79,15 @@ namespace Kepler7.Core.Modelo
 
         protected void AsignarNuevoId()
         {
-            Id = _siguienteId++;
+            Id = _siguienteId;
+            _siguienteId = _siguienteId + 1;
         }
 
         public abstract string Descripcion();
 
-        public override string ToString() => NombreCompleto;
+        public override string ToString()
+        {
+            return NombreCompleto;
+        }
     }
 }

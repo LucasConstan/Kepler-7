@@ -12,6 +12,8 @@ using System.Threading.Tasks;
 
 namespace Kepler7.Core.Patrones.State
 {
+    // El héroe delega en su estado actual si puede jugar y cuánto pega.
+    // Acá también se juntan otros patrones: la cadena de defensas y lo que se equipa desde el inventario.
     public class Heroe : Unidad
     {
         private IEstadoHeroe _estado;

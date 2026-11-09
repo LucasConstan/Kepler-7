@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Kepler7.Core.Patrones.State
 {
+    // Desde acá arrancan los cambios: un golpe puede dejarlo aturdido o, con poca vida, enfurecido.
     public class EstadoNormal : IEstadoHeroe
     {
         public string ObtenerNombre()

@@ -1,29 +1,37 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace Kepler7.Core.Patrones.Prototype
 {
-    /// <summary>
-    /// PROTOTYPE - Registro de prototipos. El laboratorio guarda un tripulante base por rol
-    /// y genera defensores nuevos clonándolos, sin hacer "new Soldado()" cada vez.
-    /// </summary>
+    // Guarda un tripulante base por rol y genera defensores nuevos clonándolos,
+    // sin tener que hacer "new Soldado()" cada vez.
     public class LaboratorioClonacion
     {
         private readonly Dictionary<string, Tripulante> _prototipos = new Dictionary<string, Tripulante>();
 
-        public IEnumerable<Tripulante> Prototipos => _prototipos.Values;
+        public IEnumerable<Tripulante> Prototipos
+        {
+            get { return _prototipos.Values; }
+        }
 
+        // Si ya había un prototipo con ese rol, lo reemplaza.
         public void RegistrarPrototipo(Tripulante prototipo)
         {
             _prototipos[prototipo.Rol] = prototipo;
         }
 
-        public Tripulante ObtenerPrototipo(string rol) => _prototipos[rol];
+        public Tripulante ObtenerPrototipo(string rol)
+        {
+            return _prototipos[rol];
+        }
 
-        public Tripulante Clonar(string rol) => _prototipos[rol].Clonar();
+        public Tripulante Clonar(string rol)
+        {
+            return _prototipos[rol].Clonar();
+        }
 
         public static LaboratorioClonacion CrearConPrototiposBase()
         {
-            var laboratorio = new LaboratorioClonacion();
+            LaboratorioClonacion laboratorio = new LaboratorioClonacion();
             laboratorio.RegistrarPrototipo(new Soldado());
             laboratorio.RegistrarPrototipo(new Medico());
             laboratorio.RegistrarPrototipo(new Francotirador());
