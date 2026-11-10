@@ -12,6 +12,12 @@ namespace Kepler7.Core.Patrones.ChainOfResponsibility
             return _defensas;
         }
 
+        // Deja la cadena sin defensas. Se usa al retomar una partida guardada, para rearmarla en su orden.
+        public void Vaciar()
+        {
+            _defensas.Clear();
+        }
+
         public void Agregar(Defensa defensa)
         {
             _defensas.Add(defensa);

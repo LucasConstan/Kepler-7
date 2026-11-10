@@ -13,14 +13,17 @@ namespace Kepler7.Game
         private readonly GestorComandos _gestor;
         private readonly LaboratorioClonacion _laboratorio;
         private readonly Action<string> _registrar;
+        private readonly HubProgreso _hub;
 
-        public FormLaboratorio(Partida partida, GestorComandos gestor, LaboratorioClonacion laboratorio, Action<string> registrar)
+        public FormLaboratorio(Partida partida, GestorComandos gestor, LaboratorioClonacion laboratorio, Action<string> registrar, HubProgreso hub)
         {
             InitializeComponent();
+            new TransicionAparecer(this);
             _partida = partida;
             _gestor = gestor;
             _laboratorio = laboratorio;
             _registrar = registrar;
+            _hub = hub;
 
             List<Tripulante> prototipos = new List<Tripulante>(_laboratorio.Prototipos);
             for (int i = 0; i < prototipos.Count; i++)
@@ -97,6 +100,7 @@ namespace Kepler7.Game
             _registrar("   · equipo copiado: " + equipo);
 
             ActualizarClones(clon);
+            _hub.DesbloquearLogro(CatalogoLogros.Prototype);
         }
 
         private void btnEquipar_Click(object? sender, EventArgs e)

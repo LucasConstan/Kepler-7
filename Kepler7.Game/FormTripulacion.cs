@@ -9,12 +9,15 @@ namespace Kepler7.Game
     {
         private readonly Partida _partida;
         private readonly Action<string> _registrar;
+        private readonly HubProgreso _hub;
 
-        public FormTripulacion(Partida partida, Action<string> registrar)
+        public FormTripulacion(Partida partida, Action<string> registrar, HubProgreso hub)
         {
             InitializeComponent();
+            new TransicionAparecer(this);
             _partida = partida;
             _registrar = registrar;
+            _hub = hub;
 
             cmbCarril.Items.AddRange(Estacion.Subsistemas);
             cmbCarril.SelectedIndex = 0;
@@ -29,6 +32,7 @@ namespace Kepler7.Game
             if (_partida.EnviarTripulantes(carril))
             {
                 lblResultado.Text = "Llegaron " + Partida.TripulantesPorEnvio + " tripulantes a " + Estacion.Subsistemas[carril] + ".";
+                _hub.DesbloquearLogro(CatalogoLogros.Flyweight);
             }
             else
             {

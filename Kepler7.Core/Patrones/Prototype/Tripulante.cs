@@ -65,6 +65,14 @@ namespace Kepler7.Core.Patrones.Prototype
             Vida = Vida + equipo.BonusVida;
         }
 
+        // Para retomar una partida guardada: el tripulante vuelve con el equipo que tenía
+        // (que ya incluye el de fábrica), en vez de sumarlo encima del que trae al crearse.
+        internal void ReemplazarEquipamiento(List<Equipo> equipo)
+        {
+            _equipamiento = equipo;
+            Vida = VidaMaxima;
+        }
+
         public Tripulante Clonar()
         {
             // Copia superficial: copia todos los campos (rol, stats, color...) de una sola vez.

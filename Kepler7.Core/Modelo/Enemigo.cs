@@ -52,16 +52,19 @@ namespace Kepler7.Core.Modelo
             Estrategia = estrategia;
         }
 
+        // Los números son: daño, vida, alcance, ticks por casilla y créditos que da al morir.
+        // Para darle un poco más de dificultad se subió la vida un 30% y se bajó la recompensa un 30%
+        // (antes: Dron 35 de vida y 12 cr, Criatura 160 y 35 cr, Pirata 60 y 15 cr).
         public static Enemigo Crear(TipoEnemigo tipo, IEstrategiaIA estrategia)
         {
             switch (tipo)
             {
                 case TipoEnemigo.Dron:
-                    return new Enemigo(tipo, "Dron", "Dr", Color.FromArgb(210, 120, 50), 6, 35, 3, 1, 12, estrategia);
+                    return new Enemigo(tipo, "Dron", "Dr", Color.FromArgb(210, 120, 50), 6, 45, 3, 1, 8, estrategia);
                 case TipoEnemigo.Criatura:
-                    return new Enemigo(tipo, "Criatura", "Cr", Color.FromArgb(150, 70, 150), 14, 160, 1, 2, 35, estrategia);
+                    return new Enemigo(tipo, "Criatura", "Cr", Color.FromArgb(150, 70, 150), 14, 210, 1, 2, 25, estrategia);
                 default:
-                    return new Enemigo(tipo, "Pirata", "Pi", Color.FromArgb(200, 60, 60), 8, 60, 1, 1, 15, estrategia);
+                    return new Enemigo(tipo, "Pirata", "Pi", Color.FromArgb(200, 60, 60), 8, 78, 1, 1, 10, estrategia);
             }
         }
 

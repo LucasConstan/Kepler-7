@@ -37,9 +37,6 @@ namespace Kepler7.Game
             lstLogros = new ListBox();
             grpBoveda = new GroupBox();
             lblBoveda = new Label();
-            nudCantidad = new NumericUpDown();
-            btnRetirar = new Button();
-            lblResultadoBoveda = new Label();
             lstLogBoveda = new ListBox();
             grpGuardado = new GroupBox();
             lblDonde = new Label();
@@ -48,9 +45,16 @@ namespace Kepler7.Game
             btnCargar = new Button();
             lblGuardado = new Label();
             btnCerrar = new Button();
+            grpTienda = new GroupBox();
+            lblTienda = new Label();
+            cmbMejoras = new ComboBox();
+            btnComprar = new Button();
+            lblDetalleMejora = new Label();
+            lblResultadoTienda = new Label();
+            lblPendientes = new Label();
             grpProgreso.SuspendLayout();
             grpBoveda.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)nudCantidad).BeginInit();
+            grpTienda.SuspendLayout();
             grpGuardado.SuspendLayout();
             SuspendLayout();
             //
@@ -115,6 +119,7 @@ namespace Kepler7.Game
             // lstLogros
             //
             lstLogros.FormattingEnabled = true;
+            lstLogros.HorizontalScrollbar = true;
             lstLogros.IntegralHeight = false;
             lstLogros.Location = new Point(340, 42);
             lstLogros.Name = "lstLogros";
@@ -125,9 +130,6 @@ namespace Kepler7.Game
             // grpBoveda
             //
             grpBoveda.Controls.Add(lblBoveda);
-            grpBoveda.Controls.Add(nudCantidad);
-            grpBoveda.Controls.Add(btnRetirar);
-            grpBoveda.Controls.Add(lblResultadoBoveda);
             grpBoveda.Controls.Add(lstLogBoveda);
             grpBoveda.Location = new Point(12, 204);
             grpBoveda.Name = "grpBoveda";
@@ -144,43 +146,81 @@ namespace Kepler7.Game
             lblBoveda.TabIndex = 0;
             lblBoveda.Text = "Saldo: 0 monedas.";
             //
-            // nudCantidad
-            //
-            nudCantidad.Location = new Point(10, 48);
-            nudCantidad.Maximum = new decimal(new int[] { 10000, 0, 0, 0 });
-            nudCantidad.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-            nudCantidad.Name = "nudCantidad";
-            nudCantidad.Size = new Size(90, 23);
-            nudCantidad.TabIndex = 1;
-            nudCantidad.Value = new decimal(new int[] { 20, 0, 0, 0 });
-            //
-            // btnRetirar
-            //
-            btnRetirar.Location = new Point(108, 46);
-            btnRetirar.Name = "btnRetirar";
-            btnRetirar.Size = new Size(150, 28);
-            btnRetirar.TabIndex = 2;
-            btnRetirar.Text = "Retirar monedas";
-            btnRetirar.UseVisualStyleBackColor = true;
-            btnRetirar.Click += btnRetirar_Click;
-            //
-            // lblResultadoBoveda
-            //
-            lblResultadoBoveda.Location = new Point(266, 52);
-            lblResultadoBoveda.Name = "lblResultadoBoveda";
-            lblResultadoBoveda.Size = new Size(280, 20);
-            lblResultadoBoveda.TabIndex = 3;
-            //
             // lstLogBoveda
             //
             lstLogBoveda.FormattingEnabled = true;
             lstLogBoveda.HorizontalScrollbar = true;
             lstLogBoveda.IntegralHeight = false;
-            lstLogBoveda.Location = new Point(10, 80);
+            lstLogBoveda.Location = new Point(10, 46);
             lstLogBoveda.Name = "lstLogBoveda";
             lstLogBoveda.SelectionMode = SelectionMode.None;
-            lstLogBoveda.Size = new Size(536, 116);
-            lstLogBoveda.TabIndex = 4;
+            lstLogBoveda.Size = new Size(536, 150);
+            lstLogBoveda.TabIndex = 1;
+            //
+            // grpTienda
+            //
+            grpTienda.Controls.Add(lblTienda);
+            grpTienda.Controls.Add(cmbMejoras);
+            grpTienda.Controls.Add(btnComprar);
+            grpTienda.Controls.Add(lblDetalleMejora);
+            grpTienda.Controls.Add(lblResultadoTienda);
+            grpTienda.Controls.Add(lblPendientes);
+            grpTienda.Location = new Point(12, 416);
+            grpTienda.Name = "grpTienda";
+            grpTienda.Size = new Size(556, 144);
+            grpTienda.TabIndex = 2;
+            grpTienda.TabStop = false;
+            grpTienda.Text = "Tienda de mejoras  [se paga a través del Proxy]";
+            //
+            // lblTienda
+            //
+            lblTienda.Location = new Point(10, 22);
+            lblTienda.Name = "lblTienda";
+            lblTienda.Size = new Size(536, 18);
+            lblTienda.TabIndex = 0;
+            lblTienda.Text = "Lo que compres se aplica cuando empieces una partida nueva (menú Reiniciar partida).";
+            //
+            // cmbMejoras
+            //
+            cmbMejoras.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbMejoras.FormattingEnabled = true;
+            cmbMejoras.Location = new Point(10, 44);
+            cmbMejoras.Name = "cmbMejoras";
+            cmbMejoras.Size = new Size(300, 23);
+            cmbMejoras.TabIndex = 1;
+            cmbMejoras.SelectedIndexChanged += cmbMejoras_SelectedIndexChanged;
+            //
+            // btnComprar
+            //
+            btnComprar.Location = new Point(318, 42);
+            btnComprar.Name = "btnComprar";
+            btnComprar.Size = new Size(228, 28);
+            btnComprar.TabIndex = 2;
+            btnComprar.Text = "Comprar mejora";
+            btnComprar.UseVisualStyleBackColor = true;
+            btnComprar.Click += btnComprar_Click;
+            //
+            // lblDetalleMejora
+            //
+            lblDetalleMejora.Location = new Point(10, 74);
+            lblDetalleMejora.Name = "lblDetalleMejora";
+            lblDetalleMejora.Size = new Size(536, 18);
+            lblDetalleMejora.TabIndex = 3;
+            //
+            // lblResultadoTienda
+            //
+            lblResultadoTienda.Location = new Point(10, 96);
+            lblResultadoTienda.Name = "lblResultadoTienda";
+            lblResultadoTienda.Size = new Size(536, 18);
+            lblResultadoTienda.TabIndex = 4;
+            //
+            // lblPendientes
+            //
+            lblPendientes.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblPendientes.Location = new Point(10, 118);
+            lblPendientes.Name = "lblPendientes";
+            lblPendientes.Size = new Size(536, 18);
+            lblPendientes.TabIndex = 5;
             //
             // grpGuardado
             //
@@ -189,12 +229,12 @@ namespace Kepler7.Game
             grpGuardado.Controls.Add(btnGuardar);
             grpGuardado.Controls.Add(btnCargar);
             grpGuardado.Controls.Add(lblGuardado);
-            grpGuardado.Location = new Point(12, 416);
+            grpGuardado.Location = new Point(12, 566);
             grpGuardado.Name = "grpGuardado";
             grpGuardado.Size = new Size(556, 108);
-            grpGuardado.TabIndex = 2;
+            grpGuardado.TabIndex = 3;
             grpGuardado.TabStop = false;
-            grpGuardado.Text = "Guardado JSON del progreso y del log de la Bóveda  [Bridge]";
+            grpGuardado.Text = "Guardado JSON del progreso, la Bóveda y la partida  [Bridge]";
             //
             // lblDonde
             //
@@ -222,7 +262,7 @@ namespace Kepler7.Game
             btnGuardar.Name = "btnGuardar";
             btnGuardar.Size = new Size(136, 28);
             btnGuardar.TabIndex = 2;
-            btnGuardar.Text = "Guardar progreso";
+            btnGuardar.Text = "Guardar todo";
             btnGuardar.UseVisualStyleBackColor = true;
             btnGuardar.Click += btnGuardar_Click;
             //
@@ -246,10 +286,10 @@ namespace Kepler7.Game
             // btnCerrar
             //
             btnCerrar.DialogResult = DialogResult.Cancel;
-            btnCerrar.Location = new Point(468, 532);
+            btnCerrar.Location = new Point(468, 682);
             btnCerrar.Name = "btnCerrar";
             btnCerrar.Size = new Size(100, 28);
-            btnCerrar.TabIndex = 3;
+            btnCerrar.TabIndex = 4;
             btnCerrar.Text = "Cerrar";
             btnCerrar.UseVisualStyleBackColor = true;
             //
@@ -258,9 +298,10 @@ namespace Kepler7.Game
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             CancelButton = btnCerrar;
-            ClientSize = new Size(580, 572);
+            ClientSize = new Size(580, 722);
             Controls.Add(grpProgreso);
             Controls.Add(grpBoveda);
+            Controls.Add(grpTienda);
             Controls.Add(grpGuardado);
             Controls.Add(btnCerrar);
             FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -273,7 +314,7 @@ namespace Kepler7.Game
             grpProgreso.ResumeLayout(false);
             grpProgreso.PerformLayout();
             grpBoveda.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)nudCantidad).EndInit();
+            grpTienda.ResumeLayout(false);
             grpGuardado.ResumeLayout(false);
             grpGuardado.PerformLayout();
             ResumeLayout(false);
@@ -290,9 +331,6 @@ namespace Kepler7.Game
         private ListBox lstLogros;
         private GroupBox grpBoveda;
         private Label lblBoveda;
-        private NumericUpDown nudCantidad;
-        private Button btnRetirar;
-        private Label lblResultadoBoveda;
         private ListBox lstLogBoveda;
         private GroupBox grpGuardado;
         private Label lblDonde;
@@ -301,5 +339,12 @@ namespace Kepler7.Game
         private Button btnCargar;
         private Label lblGuardado;
         private Button btnCerrar;
+        private GroupBox grpTienda;
+        private Label lblTienda;
+        private ComboBox cmbMejoras;
+        private Button btnComprar;
+        private Label lblDetalleMejora;
+        private Label lblResultadoTienda;
+        private Label lblPendientes;
     }
 }

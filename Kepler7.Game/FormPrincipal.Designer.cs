@@ -36,6 +36,7 @@ namespace Kepler7.Game
             menuTripulacion = new ToolStripMenuItem();
             menuControlCentral = new ToolStripMenuItem();
             menuHub = new ToolStripMenuItem();
+            menuComoJugar = new ToolStripMenuItem();
             menuReiniciar = new ToolStripMenuItem();
             lblEstado = new Label();
             grpOleada = new GroupBox();
@@ -157,7 +158,7 @@ namespace Kepler7.Game
             //
             // menuPrincipal
             //
-            menuPrincipal.Items.AddRange(new ToolStripItem[] { menuAstillero, menuLaboratorio, menuInventario, menuTripulacion, menuControlCentral, menuHub, menuReiniciar });
+            menuPrincipal.Items.AddRange(new ToolStripItem[] { menuAstillero, menuLaboratorio, menuInventario, menuTripulacion, menuControlCentral, menuHub, menuComoJugar, menuReiniciar });
             menuPrincipal.Location = new Point(0, 0);
             menuPrincipal.Name = "menuPrincipal";
             menuPrincipal.Size = new Size(1290, 24);
@@ -205,6 +206,13 @@ namespace Kepler7.Game
             menuHub.Size = new Size(170, 20);
             menuHub.Text = "Hub y progreso [Proxy, Bridge]";
             menuHub.Click += menuHub_Click;
+            //
+            // menuComoJugar
+            //
+            menuComoJugar.Name = "menuComoJugar";
+            menuComoJugar.Size = new Size(85, 20);
+            menuComoJugar.Text = "Cómo jugar";
+            menuComoJugar.Click += menuComoJugar_Click;
             //
             // menuReiniciar
             //
@@ -1460,6 +1468,7 @@ namespace Kepler7.Game
         private ToolStripMenuItem menuTripulacion;
         private ToolStripMenuItem menuControlCentral;
         private ToolStripMenuItem menuHub;
+        private ToolStripMenuItem menuComoJugar;
         private ToolStripMenuItem menuReiniciar;
         private Label lblEstado;
         private GroupBox grpOleada;

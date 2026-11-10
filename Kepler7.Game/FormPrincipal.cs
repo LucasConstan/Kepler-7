@@ -20,8 +20,18 @@ namespace Kepler7.Game
 
         private static readonly Color ColorZonaDefensa = Color.LightBlue;
         private static readonly Color ColorZonaAproximacion = Color.MistyRose;
+        private static readonly Color ColorDestello = Color.Red;
 
-        private readonly Partida _partida = new Partida(600);
+        // Cuántos pasos del Timer de animación dura un destello, y cuánto se mueve una barra por paso.
+        private const int PasosDestello = 8;
+        private const int PasoBarra = 3;
+
+        // Con cuánto arranca una partida nueva. Era 600: se bajó para que el juego tenga un poco más de dificultad.
+        private const int CreditosIniciales = 500;
+
+        // Se crea en el constructor: puede ser una nueva o una guardada que se retoma (ver CrearPartida).
+        private readonly Partida _partida;
+        private bool _partidaRetomada;
 
         // Command: todas las acciones del jugador pasan por el gestor (deshacer/rehacer + historial).
         private readonly GestorComandos _gestor = new GestorComandos();
@@ -40,15 +50,39 @@ namespace Kepler7.Game
         private readonly Label[] _lblCarriles = new Label[Grilla.Carriles];
         private readonly ProgressBar[] _barrasNucleo = new ProgressBar[Grilla.Carriles];
 
+        // --- Animaciones del tablero ---
+        // Un Timer aparte del de los ticks del juego, así se anima aunque la partida esté en pausa.
+        private readonly System.Windows.Forms.Timer _timerAnimacion = new System.Windows.Forms.Timer();
+        // Cuántos pasos de destello le quedan a cada celda y a cada subsistema (0 = sin destello).
+        private readonly int[,] _destellosCelda = new int[Grilla.Carriles, Grilla.Columnas];
+        private readonly int[] _destellosCarril = new int[Grilla.Carriles];
+        // Lo último que se mostró, para darse cuenta de cuándo alguien recibió daño.
+        private readonly Dictionary<Unidad, int> _vidaMostrada = new Dictionary<Unidad, int>();
+        private readonly int[] _integridadMostrada = new int[Grilla.Carriles];
+        // Hacia dónde se mueven las barras: el valor real que tienen que alcanzar de a poco.
+        private readonly int[] _objetivoNucleo = new int[Grilla.Carriles];
+        private int _objetivoVidaHeroe;
+        private readonly Color[] _colorCarrilNormal = new Color[Grilla.Carriles];
+
         private Enemigo? _enemigoSeleccionado;
         private Unidad? _defensorAMover;
         private bool _estacionApagada;
         private int _lineasHistorial;
         private Golpe? _golpeMostrado;
 
-        public FormPrincipal()
+        // La recompensa del Hub se entrega una sola vez, aunque el resumen se abra varias veces.
+        private bool _recompensaEntregada;
+        private List<string> _recompensa = new List<string>();
+
+        // Las mejoras de la tienda que se usaron al arrancar esta partida.
+        private readonly List<string> _mejorasAplicadas;
+
+        // continuarGuardada viene de la pantalla inicial: true si se eligió "Continuar partida".
+        public FormPrincipal(bool continuarGuardada)
         {
             InitializeComponent();
+            new TransicionAparecer(this);
+            _partida = CrearPartida(continuarGuardada);
             _control = new ControlCentral(_partida);
 
             // En la tabla del tablero: columna 0 = subsistema, columna 1 = barra del núcleo, columnas 2 a 10 = celdas.
@@ -56,6 +90,8 @@ namespace Kepler7.Game
             {
                 _lblCarriles[carril] = (Label)tablaTablero.GetControlFromPosition(0, carril)!;
                 _barrasNucleo[carril] = (ProgressBar)tablaTablero.GetControlFromPosition(1, carril)!;
+                _colorCarrilNormal[carril] = _lblCarriles[carril].BackColor;
+                _integridadMostrada[carril] = Partida.IntegridadMaxima;
                 for (int columna = 0; columna < Grilla.Columnas; columna++)
                 {
                     _celdas[carril, columna] = (Button)tablaTablero.GetControlFromPosition(columna + 2, carril)!;
@@ -72,17 +108,87 @@ namespace Kepler7.Game
 
             _partida.Mensaje += Registrar;
             _partida.Historial.EntradaRegistrada += AgregarAlHistorial;
+            _hub.LogroDesbloqueado += MostrarLogro;
+
+            _timerAnimacion.Interval = 40;
+            _timerAnimacion.Tick += timerAnimacion_Tick;
+            _timerAnimacion.Start();
+            FormClosed += FormPrincipal_FormClosed;
+
+            // Las mejoras compradas en la tienda del Hub se usan acá, antes del primer refresco,
+            // así la pantalla ya arranca mostrando los créditos y tripulantes de más.
+            // Son para partidas nuevas: si se retomó una guardada, quedan esperando a la próxima.
+            if (_partidaRetomada)
+            {
+                _mejorasAplicadas = new List<string>();
+            }
+            else
+            {
+                _mejorasAplicadas = _hub.TomarMejorasPendientes();
+            }
+            List<string> avisosMejoras = new List<string>();
+            for (int i = 0; i < _mejorasAplicadas.Count; i++)
+            {
+                avisosMejoras.Add(CatalogoMejoras.Aplicar(_mejorasAplicadas[i], _partida));
+            }
+            Shown += FormPrincipal_Shown;
 
             Refrescar();
             Registrar("Estación en línea. Usá el menú para ensamblar naves (Astillero) o clonar tripulantes (Laboratorio),");
             Registrar("desplegalos en el tablero y cuando estés listo iniciá la oleada.");
+            if (_partidaRetomada)
+            {
+                Registrar("Partida guardada retomada: te toca la oleada " + _partida.NumeroOleada + "/" + _partida.TotalOleadas + ".");
+            }
+            for (int i = 0; i < avisosMejoras.Count; i++)
+            {
+                Registrar("Tienda del Hub: " + avisosMejoras[i]);
+            }
+        }
+
+        // Retoma la partida guardada si en la pantalla inicial se eligió "Continuar partida"; si no, arranca una nueva.
+        // El guardado se borra en los dos casos: retomarlo lo usa, y empezar otra lo descarta.
+        private Partida CrearPartida(bool continuarGuardada)
+        {
+            PartidaGuardada? guardada = _hub.LeerPartidaGuardada();
+            _hub.BorrarPartidaGuardada();
+
+            if (continuarGuardada && guardada != null)
+            {
+                try
+                {
+                    Partida retomada = Partida.DesdeGuardado(guardada);
+                    _hub.ContinuarPartida(guardada);
+                    _partidaRetomada = true;
+                    return retomada;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("No se pudo retomar la partida guardada (" + ex.Message + "). Empieza una nueva.",
+                                    "Partida guardada", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+
+            _hub.EmpezarPartidaNueva();
+            return new Partida(CreditosIniciales);
+        }
+
+        // Un cartel por cada mejora de la tienda que se usó, para que no pase desapercibida.
+        // Se muestran recién acá porque el cartel se ubica según dónde quedó la ventana en pantalla.
+        private void FormPrincipal_Shown(object? sender, EventArgs e)
+        {
+            for (int i = 0; i < _mejorasAplicadas.Count; i++)
+            {
+                FormAviso aviso = new FormAviso("Mejora de la tienda aplicada", _mejorasAplicadas[i], this);
+                aviso.Show();
+            }
         }
 
         #region Menú: abre las ventanas de cada patrón
 
         private void menuAstillero_Click(object? sender, EventArgs e)
         {
-            using (FormAstillero ventana = new FormAstillero(_partida, _gestor, Registrar))
+            using (FormAstillero ventana = new FormAstillero(_partida, _gestor, Registrar, _hub))
             {
                 ventana.ShowDialog(this);
                 Refrescar();
@@ -91,7 +197,7 @@ namespace Kepler7.Game
 
         private void menuLaboratorio_Click(object? sender, EventArgs e)
         {
-            using (FormLaboratorio ventana = new FormLaboratorio(_partida, _gestor, _laboratorio, Registrar))
+            using (FormLaboratorio ventana = new FormLaboratorio(_partida, _gestor, _laboratorio, Registrar, _hub))
             {
                 ventana.ShowDialog(this);
                 Refrescar();
@@ -100,7 +206,7 @@ namespace Kepler7.Game
 
         private void menuInventario_Click(object? sender, EventArgs e)
         {
-            using (FormInventario ventana = new FormInventario(_partida, Registrar))
+            using (FormInventario ventana = new FormInventario(_partida, Registrar, _hub))
             {
                 ventana.ShowDialog(this);
                 Refrescar();
@@ -109,7 +215,7 @@ namespace Kepler7.Game
 
         private void menuTripulacion_Click(object? sender, EventArgs e)
         {
-            using (FormTripulacion ventana = new FormTripulacion(_partida, Registrar))
+            using (FormTripulacion ventana = new FormTripulacion(_partida, Registrar, _hub))
             {
                 ventana.ShowDialog(this);
                 Refrescar();
@@ -120,7 +226,7 @@ namespace Kepler7.Game
         {
             bool estabaApagada = _estacionApagada;
 
-            using (FormControlCentral ventana = new FormControlCentral(_control, _partida, Registrar))
+            using (FormControlCentral ventana = new FormControlCentral(_control, _partida, Registrar, _hub))
             {
                 // La ventana usa la fachada; acá solo nos enteramos para manejar el Timer.
                 ventana.OleadaIniciada += AlEmpezarOleada;
@@ -131,15 +237,32 @@ namespace Kepler7.Game
 
             if (!estabaApagada && _estacionApagada)
             {
-                PreguntarNuevaPartida();
+                MostrarResumen();
             }
         }
 
         private void menuHub_Click(object? sender, EventArgs e)
         {
-            using (FormHub ventana = new FormHub(_hub, Registrar))
+            using (FormHub ventana = new FormHub(_hub, _partida, Registrar))
             {
                 ventana.ShowDialog(this);
+            }
+        }
+
+        // El tutorial. Si hay una oleada corriendo, se pausa mientras se lee y después sigue.
+        private void menuComoJugar_Click(object? sender, EventArgs e)
+        {
+            bool estabaCorriendo = timerTick.Enabled;
+            timerTick.Stop();
+
+            using (FormComoJugar ventana = new FormComoJugar())
+            {
+                ventana.ShowDialog(this);
+            }
+
+            if (estabaCorriendo)
+            {
+                timerTick.Start();
             }
         }
 
@@ -162,9 +285,10 @@ namespace Kepler7.Game
         // Iniciar la oleada pasa por la fachada: ella prepara los subsistemas y arranca la oleada.
         private void btnIniciarOleada_Click(object? sender, EventArgs e)
         {
-            if (_estacionApagada)
+            // Con la partida terminada, este mismo botón vuelve a abrir el resumen final.
+            if (_estacionApagada || PartidaTerminada())
             {
-                PreguntarNuevaPartida();
+                MostrarResumen();
                 return;
             }
 
@@ -210,13 +334,39 @@ namespace Kepler7.Game
             _gestor.Limpiar("Terminó la oleada");
             Refrescar();
 
-            if (_partida.Fase == FasePartida.Victoria)
+            // Si la oleada terminó sin perder, todos los turnos (Template Method) se jugaron hasta el final.
+            if (_partida.Fase == FasePartida.Preparacion || _partida.Fase == FasePartida.Victoria)
             {
-                MessageBox.Show("¡Salvaste Kepler-7!", "Victoria", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                _hub.DesbloquearLogro(CatalogoLogros.TemplateMethod);
+
+                // La oleada se paga al toque en el Hub (XP y monedas), y si había logros esperando pasan a recompensas.
+                int cargasAntes = _hub.ObtenerProgreso().CargasDeLogro;
+                // Al ganar, el número de oleada no avanza: la superada es la última.
+                int oleadaSuperada = _partida.NumeroOleada - 1;
+                if (_partida.Fase == FasePartida.Victoria)
+                {
+                    oleadaSuperada = _partida.TotalOleadas;
+                }
+                List<string> recompensa = _hub.OleadaSuperada(oleadaSuperada, _partida.EnemigosDerrotados);
+                for (int i = 0; i < recompensa.Count; i++)
+                {
+                    Registrar("Hub: " + recompensa[i]);
+                }
+
+                // El primer mensaje siempre es lo que dio la oleada, por ejemplo "Oleada 1 superada: +26 XP y +10 monedas."
+                FormAviso avisoOleada = new FormAviso(recompensa[0], "Mirá tu progreso en el Hub", this);
+                avisoOleada.Show();
+
+                if (_hub.ObtenerProgreso().CargasDeLogro > cargasAntes)
+                {
+                    FormAviso avisoLogros = new FormAviso("Logros listos para cobrar", "Cobralos en el Hub", this);
+                    avisoLogros.Show();
+                }
             }
-            else if (_partida.Fase == FasePartida.Derrota)
+
+            if (PartidaTerminada())
             {
-                MessageBox.Show("Cayeron demasiados subsistemas. Kepler-7 se perdió.", "Derrota", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MostrarResumen();
             }
         }
 
@@ -238,15 +388,52 @@ namespace Kepler7.Game
             timerTick.Start();
         }
 
-        // La partida terminó porque se apagó la estación: se ofrece empezar una nueva.
-        private void PreguntarNuevaPartida()
+        private bool PartidaTerminada()
         {
-            DialogResult nueva = MessageBox.Show("Kepler-7 fue apagada y la partida terminó.\n¿Querés empezar una partida nueva?",
-                                                 "Estación apagada", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-            if (nueva == DialogResult.Yes)
+            return _partida.Fase == FasePartida.Victoria || _partida.Fase == FasePartida.Derrota;
+        }
+
+        // Pantalla final con el resumen. La primera vez también entrega la recompensa en el Hub.
+        private void MostrarResumen()
+        {
+            ResumenPartida resumen = _partida.CrearResumen();
+
+            if (!_recompensaEntregada)
             {
-                Application.Restart();
+                _recompensa = _hub.RecompensarPartida(resumen);
+                _recompensaEntregada = true;
+                for (int i = 0; i < _recompensa.Count; i++)
+                {
+                    Registrar("Hub: " + _recompensa[i]);
+                }
             }
+
+            using (FormResumen ventana = new FormResumen(resumen, _recompensa))
+            {
+                if (ventana.ShowDialog(this) == DialogResult.Retry)
+                {
+                    Application.Restart();
+                }
+            }
+        }
+
+        #endregion
+
+        #region Logros
+
+        // El Hub avisa cada logro nuevo: queda en el registro y aparece el cartel abajo a la derecha.
+        private void MostrarLogro(string logro)
+        {
+            if (_hub.CobroHabilitado())
+            {
+                Registrar("★ Logro de esta partida: " + logro + " (ya lo podés cobrar en el Hub)");
+            }
+            else
+            {
+                Registrar("★ Logro de esta partida: " + logro + " (se podrá cobrar cuando superes la primera oleada)");
+            }
+            FormAviso aviso = new FormAviso("★ Logro de esta partida", logro, this);
+            aviso.Show();
         }
 
         #endregion
@@ -353,18 +540,40 @@ namespace Kepler7.Game
                         + "\nTripulantes " + tripulantes.ToString("N0");
                 }
 
-                _barrasNucleo[carril].Value = integridad;
+                // Si el núcleo perdió integridad desde la última vez, el subsistema destella.
+                // Las reparaciones la suben, y ahí no hace falta llamar la atención.
+                if (integridad < _integridadMostrada[carril])
+                {
+                    _destellosCarril[carril] = PasosDestello;
+                }
+                _integridadMostrada[carril] = integridad;
+                _objetivoNucleo[carril] = integridad;
+                PintarCarril(carril);
 
                 for (int columna = 0; columna < Grilla.Columnas; columna++)
                 {
-                    ActualizarCelda(_celdas[carril, columna], _partida.Grilla.ObtenerUnidad(carril, columna), columna);
+                    Unidad? unidad = _partida.Grilla.ObtenerUnidad(carril, columna);
+                    if (unidad != null)
+                    {
+                        if (_vidaMostrada.ContainsKey(unidad) && unidad.Vida < _vidaMostrada[unidad])
+                        {
+                            _destellosCelda[carril, columna] = PasosDestello;
+                        }
+                        _vidaMostrada[unidad] = unidad.Vida;
+                    }
+
+                    ActualizarCelda(carril, columna);
                 }
             }
         }
 
         // Una celda vacía muestra el color de su zona; una ocupada, el símbolo, la vida y el color de la unidad.
-        private void ActualizarCelda(Button celda, Unidad? unidad, int columna)
+        // Si la unidad acaba de recibir daño, el fondo se tiñe de rojo y se va aclarando con cada paso del destello.
+        private void ActualizarCelda(int carril, int columna)
         {
+            Button celda = _celdas[carril, columna];
+            Unidad? unidad = _partida.Grilla.ObtenerUnidad(carril, columna);
+
             string texto = "";
             Color fondo;
             if (_partida.Grilla.EsZonaDefensa(columna))
@@ -395,6 +604,11 @@ namespace Kepler7.Game
                 letra = Color.White;
             }
 
+            if (_destellosCelda[carril, columna] > 0)
+            {
+                fondo = Mezclar(fondo, ColorDestello, _destellosCelda[carril, columna], PasosDestello);
+            }
+
             // Solo se cambia lo que cambió, así los botones no parpadean en cada tick.
             if (celda.Text != texto)
             {
@@ -410,6 +624,84 @@ namespace Kepler7.Game
             {
                 celda.ForeColor = letra;
             }
+        }
+
+        private void PintarCarril(int carril)
+        {
+            Color fondo = _colorCarrilNormal[carril];
+            if (_destellosCarril[carril] > 0)
+            {
+                fondo = Mezclar(fondo, ColorDestello, _destellosCarril[carril], PasosDestello);
+            }
+
+            if (_lblCarriles[carril].BackColor != fondo)
+            {
+                _lblCarriles[carril].BackColor = fondo;
+            }
+        }
+
+        // Cada 40 ms: apaga de a poco los destellos y acerca las barras a su valor real.
+        private void timerAnimacion_Tick(object? sender, EventArgs e)
+        {
+            for (int carril = 0; carril < Grilla.Carriles; carril++)
+            {
+                for (int columna = 0; columna < Grilla.Columnas; columna++)
+                {
+                    if (_destellosCelda[carril, columna] > 0)
+                    {
+                        _destellosCelda[carril, columna] = _destellosCelda[carril, columna] - 1;
+                        ActualizarCelda(carril, columna);
+                    }
+                }
+
+                if (_destellosCarril[carril] > 0)
+                {
+                    _destellosCarril[carril] = _destellosCarril[carril] - 1;
+                    PintarCarril(carril);
+                }
+
+                AcercarBarra(_barrasNucleo[carril], _objetivoNucleo[carril]);
+            }
+
+            AcercarBarra(pbVidaHeroe, _objetivoVidaHeroe);
+        }
+
+        // Este Timer no lo creó el diseñador, así que hay que liberarlo a mano al cerrar.
+        private void FormPrincipal_FormClosed(object? sender, FormClosedEventArgs e)
+        {
+            _timerAnimacion.Stop();
+            _timerAnimacion.Dispose();
+        }
+
+        // Mueve la barra unos puntos hacia el objetivo, en vez de saltar de golpe.
+        private void AcercarBarra(ProgressBar barra, int objetivo)
+        {
+            if (objetivo > barra.Maximum)
+            {
+                objetivo = barra.Maximum;
+            }
+            if (objetivo < barra.Minimum)
+            {
+                objetivo = barra.Minimum;
+            }
+
+            if (barra.Value < objetivo)
+            {
+                barra.Value = Math.Min(objetivo, barra.Value + PasoBarra);
+            }
+            else if (barra.Value > objetivo)
+            {
+                barra.Value = Math.Max(objetivo, barra.Value - PasoBarra);
+            }
+        }
+
+        // Mezcla dos colores: con "cuanto" igual a "total" da el destino, y con 0 da el original.
+        private static Color Mezclar(Color original, Color destino, int cuanto, int total)
+        {
+            int r = original.R + (destino.R - original.R) * cuanto / total;
+            int g = original.G + (destino.G - original.G) * cuanto / total;
+            int b = original.B + (destino.B - original.B) * cuanto / total;
+            return Color.FromArgb(r, g, b);
         }
 
         #endregion
@@ -449,12 +741,14 @@ namespace Kepler7.Game
 
             _partida.CambiarEstrategia(_enemigoSeleccionado, (IEstrategiaIA)cmbIA.SelectedItem!);
             Refrescar();
+            _hub.DesbloquearLogro(CatalogoLogros.Strategy);
         }
 
         private void btnIATodos_Click(object? sender, EventArgs e)
         {
             _partida.CambiarEstrategiaATodos((IEstrategiaIA)cmbIA.SelectedItem!);
             Refrescar();
+            _hub.DesbloquearLogro(CatalogoLogros.Strategy);
         }
 
         #endregion
@@ -476,9 +770,15 @@ namespace Kepler7.Game
 
         private void btnDeshacer_Click(object? sender, EventArgs e)
         {
+            bool habiaAlgo = _gestor.PuedeDeshacer;
             Registrar(_gestor.Deshacer());
             _defensorAMover = null;
             Refrescar();
+
+            if (habiaAlgo)
+            {
+                _hub.DesbloquearLogro(CatalogoLogros.Command);
+            }
         }
 
         private void btnRehacer_Click(object? sender, EventArgs e)
@@ -645,6 +945,7 @@ namespace Kepler7.Game
                 _partida.ObtenerHeroe().ObtenerCadena().Subir(posicion);
                 lstCadena.SelectedIndex = posicion - 1;
                 Refrescar();
+                _hub.DesbloquearLogro(CatalogoLogros.ChainOfResponsibility);
             }
         }
 
@@ -656,6 +957,7 @@ namespace Kepler7.Game
                 _partida.ObtenerHeroe().ObtenerCadena().Bajar(posicion);
                 lstCadena.SelectedIndex = posicion + 1;
                 Refrescar();
+                _hub.DesbloquearLogro(CatalogoLogros.ChainOfResponsibility);
             }
         }
 
@@ -669,8 +971,10 @@ namespace Kepler7.Game
 
             lblEstadoHeroe.Text = "Estado: " + heroe.ObtenerEstado().ObtenerNombre();
             lblVidaHeroe.Text = "Vida: " + heroe.Vida + " / " + heroe.VidaMaxima;
+
+            // Si el máximo baja, la barra recorta su valor sola. La vida se acerca de a poco en el Timer de animación.
             pbVidaHeroe.Maximum = heroe.VidaMaxima;
-            pbVidaHeroe.Value = heroe.Vida;
+            _objetivoVidaHeroe = heroe.Vida;
             lblDanioHeroe.Text = "Daño: " + heroe.Danio;
 
             RefrescarCadena(heroe);
@@ -679,6 +983,12 @@ namespace Kepler7.Game
             bool enBatalla = _partida.Fase == FasePartida.Oleada;
             grpComandante.Visible = enBatalla;
             grpReserva.Visible = !enBatalla;
+
+            // El único logro que se gana por un cambio de estado y no por un botón.
+            if (heroe.ObtenerEstado() is EstadoEnfurecido)
+            {
+                _hub.DesbloquearLogro(CatalogoLogros.State);
+            }
         }
 
         private void Refrescar()
@@ -720,18 +1030,16 @@ namespace Kepler7.Game
                 btnIniciarOleada.Enabled = true;
                 btnIniciarOleada.Text = "Iniciar oleada " + _partida.NumeroOleada + "/" + _partida.TotalOleadas;
             }
+            else if (_partida.Fase == FasePartida.Oleada)
+            {
+                btnIniciarOleada.Enabled = false;
+                btnIniciarOleada.Text = "Oleada en curso...";
+            }
             else
             {
-                // Con la estación apagada el botón sigue activo para volver a ofrecer una partida nueva.
-                btnIniciarOleada.Enabled = _estacionApagada;
-                if (_partida.Fase == FasePartida.Oleada)
-                {
-                    btnIniciarOleada.Text = "Oleada en curso...";
-                }
-                else
-                {
-                    btnIniciarOleada.Text = "Partida terminada";
-                }
+                // Con la partida terminada el botón sirve para volver a ver el resumen final.
+                btnIniciarOleada.Enabled = true;
+                btnIniciarOleada.Text = "Ver resumen de la partida";
             }
         }
 

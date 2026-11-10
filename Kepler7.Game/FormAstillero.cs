@@ -12,16 +12,19 @@ namespace Kepler7.Game
         private readonly Partida _partida;
         private readonly GestorComandos _gestor;
         private readonly Action<string> _registrar;
+        private readonly HubProgreso _hub;
 
         // El director: siempre sigue el mismo orden de ensamblaje.
         private readonly Astillero _astillero = new Astillero();
 
-        public FormAstillero(Partida partida, GestorComandos gestor, Action<string> registrar)
+        public FormAstillero(Partida partida, GestorComandos gestor, Action<string> registrar, HubProgreso hub)
         {
             InitializeComponent();
+            new TransicionAparecer(this);
             _partida = partida;
             _gestor = gestor;
             _registrar = registrar;
+            _hub = hub;
 
             cmbRecetas.Items.Add(new NaveExploradoraBuilder());
             cmbRecetas.Items.Add(new NaveCombateBuilder());
@@ -70,6 +73,7 @@ namespace Kepler7.Game
             }
 
             ActualizarCreditos();
+            _hub.DesbloquearLogro(CatalogoLogros.Builder);
         }
 
         private void ActualizarCreditos()

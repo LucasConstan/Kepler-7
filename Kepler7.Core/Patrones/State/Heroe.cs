@@ -79,6 +79,16 @@ namespace Kepler7.Core.Patrones.State
             return anterior;
         }
 
+        public ItemArma? ObtenerArma()
+        {
+            return _arma;
+        }
+
+        public ItemArmadura? ObtenerArmadura()
+        {
+            return _armadura;
+        }
+
         public string ObtenerNombreArma()
         {
             if (_arma == null)

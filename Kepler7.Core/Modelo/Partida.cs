@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Kepler7.Core.Patrones.Builder;
 using Kepler7.Core.Patrones.Flyweight;
+using Kepler7.Core.Patrones.Prototype;
 using Kepler7.Core.Patrones.Strategy;
 using Kepler7.Core.Patrones.TemplateMethod;
 using Kepler7.Core.Patrones.State;
@@ -34,12 +35,19 @@ namespace Kepler7.Core.Modelo
         public int Tick { get; private set; }
         public int EnemigosDerrotados { get; private set; }
 
+        // Defensores propios destruidos (tripulantes, naves y el héroe). Se muestra en el resumen final.
+        public int DefensoresPerdidos { get; private set; }
+
+        // True si la partida terminó porque se apagó la estación, y no porque cayeron los subsistemas.
+        public bool FueApagada { get; private set; }
+
         // FLYWEIGHT: la tripulación de la estación. Es el escudo de cada núcleo.
         public BibliotecaTripulantes Tripulacion { get; } = new BibliotecaTripulantes();
 
         // Cuántos tripulantes mueren por cada punto de daño que llega al núcleo.
         // Mueren rápido a propósito: la tripulación cae antes que el núcleo.
-        public const int TripulantesPorPuntoDeDanio = 30;
+        // Era 30; con 50 un subsistema queda expuesto después de 3 golpes de Pirata en vez de 4.
+        public const int TripulantesPorPuntoDeDanio = 50;
         public const int TripulantesPorEnvio = 250;
         public const int CostoEnvioTripulantes = 50;
 
@@ -362,6 +370,7 @@ namespace Kepler7.Core.Modelo
             }
             else
             {
+                DefensoresPerdidos = DefensoresPerdidos + 1;
                 Avisar(unidad.NombreCompleto + " fue destruido");
             }
         }
@@ -454,7 +463,39 @@ namespace Kepler7.Core.Modelo
             }
 
             Fase = FasePartida.Derrota;
+            FueApagada = true;
             Avisar("La estación fue apagada por el operador. Fin de la partida.");
+        }
+
+        // Arma el resumen para la pantalla final. Tiene sentido cuando la partida ya terminó.
+        public ResumenPartida CrearResumen()
+        {
+            // En la victoria el índice queda en la última oleada, por eso ahí se cuentan todas.
+            int oleadasSuperadas;
+            if (Fase == FasePartida.Victoria)
+            {
+                oleadasSuperadas = TotalOleadas;
+            }
+            else
+            {
+                oleadasSuperadas = NumeroOleada - 1;
+            }
+
+            List<string> caidos = new List<string>();
+            for (int carril = 0; carril < _integridad.Length; carril++)
+            {
+                if (_integridad[carril] == 0)
+                {
+                    caidos.Add(Estacion.Subsistemas[carril]);
+                }
+            }
+
+            // Generados incluye los 10.000 del principio y todos los refuerzos que se mandaron.
+            int tripulantesPerdidos = Tripulacion.TotalGenerados - Tripulacion.TotalVivos;
+
+            return new ResumenPartida(Fase == FasePartida.Victoria, FueApagada, oleadasSuperadas, TotalOleadas,
+                                      EnemigosDerrotados, DefensoresPerdidos, Tick, Estacion.Creditos,
+                                      tripulantesPerdidos, caidos);
         }
 
         // --- Strategy: cambiar la IA durante la partida ---
@@ -475,6 +516,333 @@ namespace Kepler7.Core.Modelo
             for (int i = 0; i < enemigos.Count; i++)
             {
                 enemigos[i].Estrategia = nueva;
+            }
+        }
+
+        // --- Guardar y retomar (solo entre oleadas) ---
+
+        private const string TipoHeroe = "Heroe";
+        private const string TipoNave = "Nave";
+
+        // Arma la foto de la partida para guardarla. Tiene sentido en la preparación: ahí no hay enemigos,
+        // los defensores tienen la vida llena y los escudos están recargados, así que no hace falta guardar eso.
+        public PartidaGuardada CrearGuardado()
+        {
+            PartidaGuardada guardada = new PartidaGuardada();
+            guardada.NumeroOleada = NumeroOleada;
+            guardada.Creditos = Estacion.Creditos;
+            guardada.Tick = Tick;
+            guardada.EnemigosDerrotados = EnemigosDerrotados;
+            guardada.DefensoresPerdidos = DefensoresPerdidos;
+            guardada.EstrategiaOleada = OleadaActual.Estrategia.Nombre;
+            guardada.TripulantesGenerados = Tripulacion.TotalGenerados;
+
+            for (int carril = 0; carril < Grilla.Carriles; carril++)
+            {
+                guardada.Integridad.Add(_integridad[carril]);
+                guardada.TripulantesPorCarril.Add(Tripulacion.TripulantesEn(carril));
+            }
+
+            List<Unidad> defensores = Grilla.Defensores();
+            for (int i = 0; i < defensores.Count; i++)
+            {
+                guardada.Unidades.Add(GuardarUnidad(defensores[i]));
+            }
+            for (int i = 0; i < Estacion.Reserva.Count; i++)
+            {
+                guardada.Unidades.Add(GuardarUnidad(Estacion.Reserva[i]));
+            }
+
+            ItemArma? arma = _heroe.ObtenerArma();
+            if (arma != null)
+            {
+                guardada.ArmaHeroe = arma.ObtenerNombre();
+                guardada.BonusArmaHeroe = arma.ObtenerBonusDanio();
+            }
+            ItemArmadura? armadura = _heroe.ObtenerArmadura();
+            if (armadura != null)
+            {
+                guardada.ArmaduraHeroe = armadura.ObtenerNombre();
+                guardada.BonusArmaduraHeroe = armadura.ObtenerBonusVida();
+            }
+
+            List<Defensa> defensas = _heroe.ObtenerCadena().ObtenerDefensas();
+            for (int i = 0; i < defensas.Count; i++)
+            {
+                guardada.DefensasHeroe.Add(VisitanteGuardado.NombreDefensa(defensas[i]));
+            }
+
+            // VISITOR: cada ítem se pasa a datos con un visitante, sin preguntar de qué tipo es.
+            List<ItemInventario> items = _inventario.ObtenerItems();
+            for (int i = 0; i < items.Count; i++)
+            {
+                VisitanteGuardado visitante = new VisitanteGuardado();
+                items[i].Aceptar(visitante);
+                guardada.Inventario.Add(visitante.ObtenerResultado());
+            }
+
+            return guardada;
+        }
+
+        // Arma una partida nueva y la deja como estaba en el guardado.
+        public static Partida DesdeGuardado(PartidaGuardada guardada)
+        {
+            Partida partida = new Partida(guardada.Creditos);
+            partida.CargarGuardado(guardada);
+            return partida;
+        }
+
+        private void CargarGuardado(PartidaGuardada guardada)
+        {
+            // Si el número viniera roto, se acomoda a una oleada que exista.
+            _indiceOleada = guardada.NumeroOleada - 1;
+            if (_indiceOleada < 0)
+            {
+                _indiceOleada = 0;
+            }
+            if (_indiceOleada > _oleadas.Count - 1)
+            {
+                _indiceOleada = _oleadas.Count - 1;
+            }
+
+            Tick = guardada.Tick;
+            EnemigosDerrotados = guardada.EnemigosDerrotados;
+            DefensoresPerdidos = guardada.DefensoresPerdidos;
+
+            for (int carril = 0; carril < Grilla.Carriles; carril++)
+            {
+                if (carril < guardada.Integridad.Count)
+                {
+                    _integridad[carril] = guardada.Integridad[carril];
+                }
+
+                // La tripulación arranca con los 10.000 de siempre: se suman o se sacan hasta llegar a lo guardado.
+                if (carril < guardada.TripulantesPorCarril.Count)
+                {
+                    int actuales = Tripulacion.TripulantesEn(carril);
+                    int guardados = guardada.TripulantesPorCarril[carril];
+                    if (guardados > actuales)
+                    {
+                        Tripulacion.Agregar(carril, guardados - actuales);
+                    }
+                    else if (guardados < actuales)
+                    {
+                        Tripulacion.Eliminar(carril, actuales - guardados);
+                    }
+                }
+            }
+            if (guardada.TripulantesGenerados > 0)
+            {
+                Tripulacion.TotalGenerados = guardada.TripulantesGenerados;
+            }
+
+            for (int i = 0; i < EstrategiasIA.Todas.Length; i++)
+            {
+                if (EstrategiasIA.Todas[i].Nombre == guardada.EstrategiaOleada)
+                {
+                    OleadaActual.Estrategia = EstrategiasIA.Todas[i];
+                }
+            }
+
+            // El héroe: primero el equipo (la armadura cambia la vida máxima) y después la cadena en su orden.
+            if (guardada.ArmaHeroe != "")
+            {
+                _heroe.EquiparArma(new ItemArma(guardada.ArmaHeroe, guardada.BonusArmaHeroe));
+            }
+            if (guardada.ArmaduraHeroe != "")
+            {
+                _heroe.EquiparArmadura(new ItemArmadura(guardada.ArmaduraHeroe, guardada.BonusArmaduraHeroe));
+            }
+            if (guardada.DefensasHeroe.Count > 0)
+            {
+                CadenaDefensas cadena = _heroe.ObtenerCadena();
+                cadena.Vaciar();
+                for (int i = 0; i < guardada.DefensasHeroe.Count; i++)
+                {
+                    cadena.Agregar(CrearDefensa(guardada.DefensasHeroe[i]));
+                }
+            }
+
+            _inventario = new Inventario();
+            for (int i = 0; i < guardada.Inventario.Count; i++)
+            {
+                ItemInventario? item = CrearItem(guardada.Inventario[i]);
+                if (item != null)
+                {
+                    _inventario.Agregar(item);
+                }
+            }
+
+            // El constructor dejó al héroe en la reserva: se lo saca para ponerlo donde estaba.
+            Estacion.QuitarDeReserva(_heroe);
+            bool heroeUbicado = false;
+            for (int i = 0; i < guardada.Unidades.Count; i++)
+            {
+                UnidadGuardada datos = guardada.Unidades[i];
+                Unidad? unidad = null;
+                if (datos.Tipo != TipoHeroe || !heroeUbicado)
+                {
+                    unidad = CrearUnidad(datos);
+                }
+
+                if (unidad != null)
+                {
+                    if (unidad == _heroe)
+                    {
+                        heroeUbicado = true;
+                    }
+                    if (datos.Vida > 0 && datos.Vida <= unidad.VidaMaxima)
+                    {
+                        unidad.Vida = datos.Vida;
+                    }
+
+                    // Si la celda no estuviera libre (un guardado roto), la unidad va a la reserva en vez de perderse.
+                    bool colocada = false;
+                    if (datos.Carril >= 0)
+                    {
+                        colocada = Grilla.Colocar(unidad, datos.Carril, datos.Columna);
+                    }
+                    if (!colocada)
+                    {
+                        Estacion.AgregarAReserva(unidad);
+                    }
+                }
+            }
+
+            if (!heroeUbicado)
+            {
+                Estacion.AgregarAReserva(_heroe);
+            }
+        }
+
+        private static UnidadGuardada GuardarUnidad(Unidad unidad)
+        {
+            UnidadGuardada datos = new UnidadGuardada();
+            datos.Carril = unidad.Carril;
+            datos.Columna = unidad.Columna;
+            datos.Vida = unidad.Vida;
+
+            if (unidad is Heroe)
+            {
+                datos.Tipo = TipoHeroe;
+            }
+            else if (unidad is NaveApoyo)
+            {
+                datos.Tipo = TipoNave;
+                datos.Receta = ((NaveApoyo)unidad).Tipo;
+            }
+            else if (unidad is Tripulante)
+            {
+                Tripulante tripulante = (Tripulante)unidad;
+                datos.Tipo = tripulante.Rol;
+                for (int i = 0; i < tripulante.Equipamiento.Count; i++)
+                {
+                    Equipo equipo = tripulante.Equipamiento[i];
+                    EquipoGuardado guardado = new EquipoGuardado();
+                    guardado.Nombre = equipo.Nombre;
+                    guardado.BonusDanio = equipo.BonusDanio;
+                    guardado.BonusVida = equipo.BonusVida;
+                    guardado.Costo = equipo.Costo;
+                    datos.Equipamiento.Add(guardado);
+                }
+            }
+
+            return datos;
+        }
+
+        // Vuelve a armar cada unidad con el mismo patrón que la creó la primera vez:
+        // las naves con el Astillero (Builder) y los tripulantes desde su clase, con su equipo de antes.
+        private Unidad? CrearUnidad(UnidadGuardada datos)
+        {
+            if (datos.Tipo == TipoHeroe)
+            {
+                return _heroe;
+            }
+
+            if (datos.Tipo == TipoNave)
+            {
+                INaveApoyoBuilder? receta = RecetaPorNombre(datos.Receta);
+                if (receta == null)
+                {
+                    return null;
+                }
+                Astillero astillero = new Astillero();
+                return astillero.Ensamblar(receta);
+            }
+
+            Tripulante? tripulante = TripulantePorRol(datos.Tipo);
+            if (tripulante == null)
+            {
+                return null;
+            }
+
+            List<Equipo> equipo = new List<Equipo>();
+            for (int i = 0; i < datos.Equipamiento.Count; i++)
+            {
+                EquipoGuardado guardado = datos.Equipamiento[i];
+                equipo.Add(new Equipo(guardado.Nombre, guardado.BonusDanio, guardado.BonusVida, guardado.Costo));
+            }
+            tripulante.ReemplazarEquipamiento(equipo);
+            return tripulante;
+        }
+
+        private static INaveApoyoBuilder? RecetaPorNombre(string receta)
+        {
+            switch (receta)
+            {
+                case "Exploradora":
+                    return new NaveExploradoraBuilder();
+                case "Combate":
+                    return new NaveCombateBuilder();
+                case "Carga":
+                    return new NaveCargaBuilder();
+                default:
+                    return null;
+            }
+        }
+
+        private static Tripulante? TripulantePorRol(string rol)
+        {
+            switch (rol)
+            {
+                case "Soldado":
+                    return new Soldado();
+                case "Médico":
+                    return new Medico();
+                case "Francotirador":
+                    return new Francotirador();
+                case "Comandante":
+                    return new Comandante();
+                default:
+                    return null;
+            }
+        }
+
+        private Defensa CrearDefensa(string nombre)
+        {
+            switch (nombre)
+            {
+                case "Escudo":
+                    return new DefensaEscudo();
+                case "Evasion":
+                    return new DefensaEvasion(Azar);
+                default:
+                    return new DefensaBlindaje();
+            }
+        }
+
+        private ItemInventario? CrearItem(ItemGuardado datos)
+        {
+            switch (datos.Tipo)
+            {
+                case "Arma":
+                    return new ItemArma(datos.Nombre, datos.Bonus);
+                case "Armadura":
+                    return new ItemArmadura(datos.Nombre, datos.Bonus);
+                case "Modulo":
+                    return new ItemModuloDefensa(datos.Nombre, CrearDefensa(datos.Defensa));
+                default:
+                    return null;
             }
         }
 

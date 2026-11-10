@@ -11,16 +11,19 @@ namespace Kepler7.Game
         private readonly ControlCentral _control;
         private readonly Partida _partida;
         private readonly Action<string> _registrar;
+        private readonly HubProgreso _hub;
 
         public event Action? OleadaIniciada;
         public event Action? EstacionApagada;
 
-        public FormControlCentral(ControlCentral control, Partida partida, Action<string> registrar)
+        public FormControlCentral(ControlCentral control, Partida partida, Action<string> registrar, HubProgreso hub)
         {
             InitializeComponent();
+            new TransicionAparecer(this);
             _control = control;
             _partida = partida;
             _registrar = registrar;
+            _hub = hub;
             ActualizarBotones();
         }
 
@@ -35,7 +38,14 @@ namespace Kepler7.Game
 
         private void btnEmergencia_Click(object? sender, EventArgs e)
         {
+            // La emergencia solo se gasta cuando de verdad se activa; si no había daño, sigue disponible.
+            bool estabaDisponible = _control.EmergenciaDisponible;
             MostrarPasos(_control.EntrarEnEmergencia());
+
+            if (estabaDisponible && !_control.EmergenciaDisponible)
+            {
+                _hub.DesbloquearLogro(CatalogoLogros.Facade);
+            }
         }
 
         private void btnApagar_Click(object? sender, EventArgs e)

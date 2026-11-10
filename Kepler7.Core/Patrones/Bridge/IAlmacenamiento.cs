@@ -12,5 +12,8 @@ namespace Kepler7.Core.Patrones.Bridge
 
         // Devuelve null si con esa clave todavía no se guardó nada.
         string? Cargar(string clave);
+
+        // Si con esa clave no hay nada, no hace nada.
+        void Borrar(string clave);
     }
 }

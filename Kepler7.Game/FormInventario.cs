@@ -12,12 +12,15 @@ namespace Kepler7.Game
     {
         private readonly Partida _partida;
         private readonly Action<string> _registrar;
+        private readonly HubProgreso _hub;
 
-        public FormInventario(Partida partida, Action<string> registrar)
+        public FormInventario(Partida partida, Action<string> registrar, HubProgreso hub)
         {
             InitializeComponent();
+            new TransicionAparecer(this);
             _partida = partida;
             _registrar = registrar;
+            _hub = hub;
             Actualizar();
         }
 
@@ -34,6 +37,7 @@ namespace Kepler7.Game
 
             _registrar("Inventario: el Comandante equipó " + item.ObtenerNombre());
             Actualizar();
+            _hub.DesbloquearLogro(CatalogoLogros.Visitor);
         }
 
         private void btnVender_Click(object? sender, EventArgs e)

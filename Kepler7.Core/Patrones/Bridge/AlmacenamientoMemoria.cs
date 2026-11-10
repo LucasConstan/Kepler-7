@@ -33,5 +33,10 @@ namespace Kepler7.Core.Patrones.Bridge
 
             return _datos[clave];
         }
+
+        public void Borrar(string clave)
+        {
+            _datos.Remove(clave);
+        }
     }
 }

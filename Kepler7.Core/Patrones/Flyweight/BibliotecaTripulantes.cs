@@ -17,7 +17,8 @@ namespace Kepler7.Core.Patrones.Flyweight
         private readonly List<TripulanteEstacion>[] _porCarril = new List<TripulanteEstacion>[Grilla.Carriles];
         private int _proximoId = 1;
 
-        public int TotalGenerados { get; private set; }
+        // El set es internal para que una partida retomada recupere su cuenta (sale en el resumen final).
+        public int TotalGenerados { get; internal set; }
 
         public int EspeciesEnFabrica
         {
