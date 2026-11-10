@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Kepler7.Core.Modelo;
+using Kepler7.Core.Patrones.Bridge;
 using Kepler7.Core.Patrones.ChainOfResponsibility;
 using Kepler7.Core.Patrones.Command;
 using Kepler7.Core.Patrones.Facade;
@@ -30,6 +31,9 @@ namespace Kepler7.Game
 
         // Prototype: el laboratorio vive toda la partida, así sus prototipos no cambian entre ventanas.
         private readonly LaboratorioClonacion _laboratorio = LaboratorioClonacion.CrearConPrototiposBase();
+
+        // Proxy + Bridge: el hub de progreso no depende de la partida. Arranca leyendo el archivo JSON.
+        private readonly HubProgreso _hub = new HubProgreso(Almacenamientos.Archivo);
 
         // Los controles del tablero, ordenados por carril y columna para recorrerlos fácil.
         private readonly Button[,] _celdas = new Button[Grilla.Carriles, Grilla.Columnas];
@@ -128,6 +132,14 @@ namespace Kepler7.Game
             if (!estabaApagada && _estacionApagada)
             {
                 PreguntarNuevaPartida();
+            }
+        }
+
+        private void menuHub_Click(object? sender, EventArgs e)
+        {
+            using (FormHub ventana = new FormHub(_hub, Registrar))
+            {
+                ventana.ShowDialog(this);
             }
         }
 
