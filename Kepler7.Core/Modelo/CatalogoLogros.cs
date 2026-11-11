@@ -19,7 +19,7 @@ namespace Kepler7.Core.Modelo
         public const string ChainOfResponsibility = "Estratega defensivo";
         public const string Visitor = "Bien equipado";
         public const string Proxy = "Retiro autorizado";
-        public const string Bridge = "Guardián del progreso";
+        public const string Bridge = "Enlace con la Tierra";
 
         // Estos tres ya existían antes del catálogo. Si se les cambia el nombre,
         // los jugadores que ya los tenían guardados los perderían.
@@ -41,7 +41,7 @@ namespace Kepler7.Core.Modelo
             new Logro("Chain of Responsibility", ChainOfResponsibility, "Cambiá el orden de la cadena de defensas."),
             new Logro("Visitor", Visitor, "Equipá un ítem del inventario."),
             new Logro("Proxy", Proxy, "Comprá una mejora en la tienda del Hub."),
-            new Logro("Bridge", Bridge, "Guardá el progreso desde el Hub."),
+            new Logro("Bridge", Bridge, "Mandá un mensaje cifrado (AES o Cuántico) a la Tierra."),
             new Logro(PatronProgreso, PrimeraMision, "Ganá XP por primera vez."),
             new Logro(PatronProgreso, Veterano, "Llegá al nivel 3."),
             new Logro(PatronProgreso, Ahorrista, "Juntá 150 monedas en la Bóveda.")

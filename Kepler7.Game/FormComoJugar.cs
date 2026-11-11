@@ -12,6 +12,7 @@ namespace Kepler7.Game
             "La oleada",
             "El héroe",
             "El Hub y las recompensas",
+            "Comunicaciones con la Tierra",
             "Guardar y seguir"
         };
 
@@ -60,6 +61,12 @@ namespace Kepler7.Game
             "•  Con las monedas comprás mejoras en la tienda para tu próxima partida. Se pagan a través de la " +
             "Bóveda, que solo deja gastar desde el nivel 2.\n\n" +
             "El panel de logros dice qué hacer para conseguir cada uno: es una buena guía para recorrer todos los patrones.",
+
+            "Desde el menú, Comunicaciones [Bridge] te deja mandar mensajes a la Tierra.\n\n" +
+            "•  Elegís por separado el tipo de mensaje (Texto, Alerta o Emergencia) y el cifrado (Sin cifrado, AES " +
+            "o Cuántico), y se combinan en el momento.\n" +
+            "•  Ves el mensaje armado, lo que viaja cifrado por el espacio y lo que lee la Tierra al descifrarlo.\n" +
+            "•  Mandar un mensaje cifrado (AES o Cuántico) te da el logro del Bridge.",
 
             "•  Guardar todo (en el Hub) guarda tu progreso y, si estás entre oleadas, también la partida.\n" +
             "•  Al abrir el juego, Continuar partida la retoma desde donde la dejaste.\n" +

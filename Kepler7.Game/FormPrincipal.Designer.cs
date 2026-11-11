@@ -35,6 +35,7 @@ namespace Kepler7.Game
             menuInventario = new ToolStripMenuItem();
             menuTripulacion = new ToolStripMenuItem();
             menuControlCentral = new ToolStripMenuItem();
+            menuComunicaciones = new ToolStripMenuItem();
             menuHub = new ToolStripMenuItem();
             menuComoJugar = new ToolStripMenuItem();
             menuReiniciar = new ToolStripMenuItem();
@@ -158,7 +159,7 @@ namespace Kepler7.Game
             //
             // menuPrincipal
             //
-            menuPrincipal.Items.AddRange(new ToolStripItem[] { menuAstillero, menuLaboratorio, menuInventario, menuTripulacion, menuControlCentral, menuHub, menuComoJugar, menuReiniciar });
+            menuPrincipal.Items.AddRange(new ToolStripItem[] { menuAstillero, menuLaboratorio, menuInventario, menuTripulacion, menuControlCentral, menuComunicaciones, menuHub, menuComoJugar, menuReiniciar });
             menuPrincipal.Location = new Point(0, 0);
             menuPrincipal.Name = "menuPrincipal";
             menuPrincipal.Size = new Size(1290, 24);
@@ -199,6 +200,13 @@ namespace Kepler7.Game
             menuControlCentral.Size = new Size(150, 20);
             menuControlCentral.Text = "Control central [Facade]";
             menuControlCentral.Click += menuControlCentral_Click;
+            //
+            // menuComunicaciones
+            //
+            menuComunicaciones.Name = "menuComunicaciones";
+            menuComunicaciones.Size = new Size(150, 20);
+            menuComunicaciones.Text = "Comunicaciones [Bridge]";
+            menuComunicaciones.Click += menuComunicaciones_Click;
             //
             // menuHub
             //
@@ -1467,6 +1475,7 @@ namespace Kepler7.Game
         private ToolStripMenuItem menuInventario;
         private ToolStripMenuItem menuTripulacion;
         private ToolStripMenuItem menuControlCentral;
+        private ToolStripMenuItem menuComunicaciones;
         private ToolStripMenuItem menuHub;
         private ToolStripMenuItem menuComoJugar;
         private ToolStripMenuItem menuReiniciar;

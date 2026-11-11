@@ -8,8 +8,8 @@ namespace Kepler7.Game
     // Ventana del Hub y progreso: XP, niveles, monedas y logros.
     // Proxy: las monedas solo se gastan en la tienda, y cada compra es un retiro que pasa por el ProxyBoveda,
     // que controla el nivel y anota todo en el log.
-    // Bridge: el progreso, el log y la partida (entre oleadas) se guardan en JSON, en archivo o en memoria,
-    // sin cambiar las persistencias.
+    // El progreso, el log y la partida (entre oleadas) se guardan en JSON, en archivo o en memoria,
+    // sin cambiar las persistencias (un segundo uso del Bridge, cuyo ejercicio principal está en FormComunicaciones).
     public partial class FormHub : Form
     {
         private readonly HubProgreso _hub;
@@ -162,7 +162,6 @@ namespace Kepler7.Game
                 }
 
                 lblGuardado.Text = "Progreso y log de la Bóveda guardados. " + textoPartida + "\n" + almacenamiento.Descripcion;
-                _hub.DesbloquearLogro(CatalogoLogros.Bridge);
             }
             catch (Exception ex)
             {

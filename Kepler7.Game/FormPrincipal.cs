@@ -12,7 +12,7 @@ using Kepler7.Core.Patrones.TemplateMethod;
 namespace Kepler7.Game
 {
     // Ventana principal: tablero, oleada, IA enemiga (Strategy), reserva y acciones con deshacer (Command).
-    // El Builder, el Prototype, el Flyweight y el Facade tienen su propia ventana, que se abre desde el menú.
+    // El Builder, el Prototype, el Flyweight, el Facade y el Bridge tienen su propia ventana, que se abre desde el menú.
     public partial class FormPrincipal : Form
     {
         // Milisegundos por tick para cada opción del combo de velocidad (0 = pausa).
@@ -44,6 +44,9 @@ namespace Kepler7.Game
 
         // Proxy + Bridge: el hub de progreso no depende de la partida. Arranca leyendo el archivo JSON.
         private readonly HubProgreso _hub = new HubProgreso(Almacenamientos.Archivo);
+
+        // Bridge: los mensajes enviados a la Tierra se recuerdan mientras dure la partida.
+        private readonly List<Transmision> _transmisiones = new List<Transmision>();
 
         // Los controles del tablero, ordenados por carril y columna para recorrerlos fácil.
         private readonly Button[,] _celdas = new Button[Grilla.Carriles, Grilla.Columnas];
@@ -238,6 +241,14 @@ namespace Kepler7.Game
             if (!estabaApagada && _estacionApagada)
             {
                 MostrarResumen();
+            }
+        }
+
+        private void menuComunicaciones_Click(object? sender, EventArgs e)
+        {
+            using (FormComunicaciones ventana = new FormComunicaciones(_transmisiones, Registrar, _hub))
+            {
+                ventana.ShowDialog(this);
             }
         }
 
