@@ -44,10 +44,12 @@ namespace Kepler7.Core.Modelo
         // FLYWEIGHT: la tripulación de la estación. Es el escudo de cada núcleo.
         public BibliotecaTripulantes Tripulacion { get; } = new BibliotecaTripulantes();
 
-        // Cuántos tripulantes mueren por cada punto de daño que llega al núcleo.
-        // Mueren rápido a propósito: la tripulación cae antes que el núcleo.
-        // Era 30; con 50 un subsistema queda expuesto después de 3 golpes de Pirata en vez de 4.
-        public const int TripulantesPorPuntoDeDanio = 50;
+        // Cuando un enemigo llega al final del carril, su daño se multiplica por esto (antes era 2).
+        public const int MultiplicadorDanioNucleo = 3;
+
+        // Cuántos tripulantes mueren por cada punto de ese daño. Mueren rápido a propósito: la tripulación
+        // cae antes que el núcleo. Era 30; con 80 un Pirata mata 1.920 y deja expuesto el subsistema de un golpe.
+        public const int TripulantesPorPuntoDeDanio = 80;
         public const int TripulantesPorEnvio = 250;
         public const int CostoEnvioTripulantes = 50;
 
@@ -382,7 +384,7 @@ namespace Kepler7.Core.Modelo
             // Mientras queden tripulantes en el subsistema, el golpe los mata a ellos y no llega al núcleo.
             if (Tripulacion.TripulantesEn(carril) > 0)
             {
-                int muertos = Tripulacion.Eliminar(carril, enemigo.Danio * 2 * TripulantesPorPuntoDeDanio);
+                int muertos = Tripulacion.Eliminar(carril, enemigo.Danio * MultiplicadorDanioNucleo * TripulantesPorPuntoDeDanio);
                 Grilla.Quitar(enemigo);
                 Avisar("¡" + enemigo.NombreCompleto + " atacó " + Estacion.Subsistemas[carril] + "! Murieron " + muertos + " tripulantes "
                     + "(quedan " + Tripulacion.TripulantesEn(carril) + ").");
@@ -395,7 +397,7 @@ namespace Kepler7.Core.Modelo
             }
 
             int antes = _integridad[carril];
-            _integridad[carril] = Math.Max(0, antes - enemigo.Danio * 2);
+            _integridad[carril] = Math.Max(0, antes - enemigo.Danio * MultiplicadorDanioNucleo);
             Grilla.Quitar(enemigo);
 
             Avisar("¡" + enemigo.NombreCompleto + " golpeó el núcleo de " + Estacion.Subsistemas[carril] + "! "
